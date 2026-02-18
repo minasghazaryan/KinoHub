@@ -1,0 +1,81 @@
+@page
+@model KinoHub.Web.Pages.Admin.IndexModel
+@using KinoHub.Web.Models
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<section class="space-y-6">
+    <h1 class="text-2xl font-semibold text-slate-50">Admin</h1>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="@(Model.IsSuccess ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : "bg-amber-500/10 text-amber-300 border-amber-500/30") rounded-lg border px-4 py-3 text-sm">
+            @Model.Message
+        </div>
+    }
+
+    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2">Search by title (RapidAPI – Movie Database Alternative)</h2>
+        <p class="text-sm text-slate-400 mb-4">Search returns IMDb IDs. Use them as the unique key. Set <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs">RapidApi:Key</code> in user secrets.</p>
+        <form method="get" asp-page-handler="Search" class="flex gap-2 flex-wrap">
+            <input type="text" name="q" value="@Model.SearchQuery" placeholder="Movie title…" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 min-w-[200px]" />
+            <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Search</button>
+        </form>
+    </div>
+
+    <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-sm font-semibold text-slate-200 mb-2">Kinopoisk API – Collections</h2>
+        <p class="text-sm text-slate-400 mb-4">Fetch films from a collection (type + page). Each page has up to 20 films. <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs">KinopoiskApiKey</code> in appsettings.</p>
+        <form method="post" asp-page-handler="SyncKinopoisk" class="mb-4">
+            <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Sync TOP 250 (page 1)</button>
+        </form>
+        <form method="post" asp-page-handler="SyncKinopoiskCollection" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Collection type</label>
+                <select name="collectionType" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 min-w-[220px]">
+                    @foreach (var opt in KinopoiskCollectionType.All)
+                    {
+                        <option value="@opt.Value" selected="@(Model.SelectedCollectionType == opt.Value ? "selected" : null)">@opt.Label</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-500 mb-1">Page</label>
+                <input type="number" name="page" value="@Model.CollectionPage" min="1" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 w-20" />
+            </div>
+            <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Sync collection</button>
+        </form>
+    </div>
+
+    @if (Model.SearchResults.Count > 0)
+    {
+        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+            <h3 class="text-sm font-semibold text-slate-200 mb-3">Results (IMDb ID)</h3>
+            <ul class="space-y-2">
+                @foreach (var r in Model.SearchResults)
+                {
+                    <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2">
+                        <div class="flex items-center gap-3">
+                            @if (!string.IsNullOrEmpty(r.PosterUrl) && r.PosterUrl != "N/A")
+                            {
+                                <img src="@r.PosterUrl" alt="" class="h-12 w-9 object-cover rounded" />
+                            }
+                            <div>
+                                <span class="font-medium text-slate-100">@r.Title</span>
+                                <span class="text-slate-500 text-sm ml-2">@r.Year</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <code class="text-xs text-amber-300">@r.ImdbId</code>
+                            <form method="post" asp-page-handler="AddByImdbId" class="inline">
+                                <input type="hidden" name="imdbId" value="@r.ImdbId" />
+                                <button type="submit" class="rounded bg-amber-600 px-2 py-1 text-xs font-medium text-slate-900 hover:bg-amber-500">Add to DB</button>
+                            </form>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</section>

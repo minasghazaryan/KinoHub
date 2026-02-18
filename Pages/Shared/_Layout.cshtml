@@ -1,33 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - KinoHub.Web</title>
+    <title>@ViewData["Title"] - KinoHub</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <header class="bg-slate-900 text-slate-100">
-        <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <a class="text-xl font-semibold tracking-tight" asp-area="" asp-page="/Index">
-                KinoHub
-            </a>
-            <div class="flex gap-4 text-sm">
-                <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Index">Home</a>
-                <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Privacy">Privacy</a>
+<body class="bg-slate-950 text-slate-100">
+    <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+            <a class="text-xl font-bold tracking-tight text-amber-400" asp-page="/Index">KINOHUB</a>
+            <div class="flex flex-1 items-center justify-end gap-3 sm:max-w-md">
+                <form method="get" asp-page="/Index" class="flex flex-1 gap-1" role="search">
+                    <input type="search" name="q" value="@ViewData["SearchQuery"]" placeholder="Поиск..." class="w-full rounded border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:outline-none" />
+                    <button type="submit" class="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">OK</button>
+                </form>
+            </div>
+            <a href="#" class="whitespace-nowrap text-sm text-slate-300 hover:text-amber-300">Вход / Регистрация</a>
+        </div>
+        <nav class="border-t border-slate-800">
+            @{
+                var navCollection = ViewData["Collection"] as string;
+            }
+            <div class="mx-auto flex max-w-7xl justify-center gap-1 px-4 py-2">
+                <a asp-page="/Index" class="rounded px-4 py-2 text-sm font-medium @(string.IsNullOrEmpty(navCollection) ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">ГЛАВНАЯ</a>
+                <a asp-page="/Index" asp-route-collection="TOP_POPULAR_ALL" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "TOP_POPULAR_ALL" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">НОВИНКИ</a>
+                <a asp-page="/Index" asp-route-collection="POPULAR_SERIES" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "POPULAR_SERIES" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">СЕРИАЛЫ</a>
+                <a asp-page="/Index" asp-route-collection="TOP_250_MOVIES" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "TOP_250_MOVIES" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">ТОП 250</a>
+                <a asp-page="/Admin/Index" class="rounded px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100">Admin</a>
             </div>
         </nav>
     </header>
-    <main role="main" class="min-h-screen bg-slate-950 text-slate-100">
-        <div class="mx-auto max-w-6xl px-4 py-10">
-            @RenderBody()
-        </div>
+    <main role="main" class="min-h-screen">
+        @RenderBody()
     </main>
-    <footer class="border-t border-slate-800 bg-slate-950 text-slate-400">
-        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-xs">
-            <span>&copy; 2026 - KinoHub</span>
-            <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
+    <footer class="border-t border-slate-800 bg-slate-950 text-slate-500">
+        <div class="mx-auto max-w-7xl px-4 py-6 text-center text-xs">KinoHub &copy; @DateTime.UtcNow.Year</div>
     </footer>
 </body>
 </html>

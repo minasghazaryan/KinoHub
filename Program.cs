@@ -1,4 +1,5 @@
 using KinoHub.Web.Data;
+using KinoHub.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,20 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<KinoContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddHttpClient("RapidApiMovie", client =>
+{
+    client.BaseAddress = new Uri("https://movie-database-imdb-alternative.p.rapidapi.com/");
+});
+builder.Services.AddScoped<RapidApiMovieService>();
+
+builder.Services.AddHttpClient("Kinopoisk", (sp, client) =>
+{
+    client.BaseAddress = new Uri("https://kinopoiskapiunofficial.tech");
+    client.DefaultRequestHeaders.Add("X-API-KEY", sp.GetRequiredService<IConfiguration>()["KinopoiskApiKey"] ?? "");
+    client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+});
+builder.Services.AddScoped<KinopoiskService>();
 
 var app = builder.Build();
 

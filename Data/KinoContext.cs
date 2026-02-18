@@ -18,6 +18,9 @@ public class KinoContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<Movie>()
+            .HasIndex(m => m.ImdbId)
+            .IsUnique();
+        modelBuilder.Entity<Movie>()
             .HasMany(m => m.StreamSources)
             .WithOne(s => s.Movie!)
             .HasForeignKey(s => s.MovieId)

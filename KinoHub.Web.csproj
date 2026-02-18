@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>KinoHub-Web-2026</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
