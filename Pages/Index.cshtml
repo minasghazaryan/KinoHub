@@ -1,0 +1,46 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="space-y-8">
+    <div class="space-y-4">
+        <p class="inline-flex items-center rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30">
+            KinoHub is ready to stream
+        </p>
+        <h1 class="text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
+            Hello, KinoHub.
+        </h1>
+        <p class="max-w-2xl text-sm text-slate-300">
+            Your ASP.NET Core Razor Pages app is running on .NET 9 with Entity Framework Core configured and a SQL Server
+            database ready to store movie and streaming source data.
+        </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <h2 class="text-sm font-semibold text-slate-100">Movies</h2>
+            <p class="mt-1 text-xs text-slate-300">
+                Backed by the <code class="rounded bg-slate-800 px-1.5 py-0.5 text-[0.7rem] text-emerald-300">Movie</code> entity.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-300">
+                <li>• `Id`, `TmdbId`, `Title`, `Description`</li>
+                <li>• `ReleaseYear`, `PosterPath`</li>
+                <li>• Navigation to related streaming sources</li>
+            </ul>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <h2 class="text-sm font-semibold text-slate-100">Database</h2>
+            <p class="mt-1 text-xs text-slate-300">
+                Managed through <code class="rounded bg-slate-800 px-1.5 py-0.5 text-[0.7rem] text-sky-300">KinoContext</code> using EF Core.
+            </p>
+            <ul class="mt-4 space-y-2 text-xs text-slate-300">
+                <li>• SQL Server connection via <code>DefaultConnection</code> in <code>appsettings.json</code></li>
+                <li>• Ready for initial migration and database update</li>
+                <li>• Designed to grow with additional movie metadata</li>
+            </ul>
+        </div>
+    </div>
+</section>

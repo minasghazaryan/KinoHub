@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - KinoHub.Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <header class="bg-slate-900 text-slate-100">
+        <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+            <a class="text-xl font-semibold tracking-tight" asp-area="" asp-page="/Index">
+                KinoHub
+            </a>
+            <div class="flex gap-4 text-sm">
+                <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Index">Home</a>
+                <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Privacy">Privacy</a>
+            </div>
+        </nav>
+    </header>
+    <main role="main" class="min-h-screen bg-slate-950 text-slate-100">
+        <div class="mx-auto max-w-6xl px-4 py-10">
+            @RenderBody()
+        </div>
+    </main>
+    <footer class="border-t border-slate-800 bg-slate-950 text-slate-400">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-xs">
+            <span>&copy; 2026 - KinoHub</span>
+            <a class="hover:text-indigo-300 transition-colors" asp-area="" asp-page="/Privacy">Privacy</a>
+        </div>
+    </footer>
+</body>
+</html>
