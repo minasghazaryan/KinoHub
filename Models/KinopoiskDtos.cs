@@ -94,6 +94,56 @@ public class KinopoiskFilmDetailsDto
 
     [JsonPropertyName("genres")]
     public List<KinopoiskGenreDto> Genres { get; set; } = [];
+
+    [JsonPropertyName("imdbId")]
+    public string? ImdbId { get; set; }
+
+    [JsonPropertyName("webUrl")]
+    public string? WebUrl { get; set; }
+
+    [JsonPropertyName("slogan")]
+    public string? Slogan { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("ratingAgeLimits")]
+    public string? RatingAgeLimits { get; set; }
+
+    [JsonPropertyName("ratingMpaa")]
+    public string? RatingMpaa { get; set; }
+
+    [JsonPropertyName("startYear")]
+    public int? StartYear { get; set; }
+
+    [JsonPropertyName("endYear")]
+    public int? EndYear { get; set; }
+
+    [JsonPropertyName("serial")]
+    public bool? Serial { get; set; }
+
+    [JsonPropertyName("reviewsCount")]
+    public int? ReviewsCount { get; set; }
+
+    [JsonPropertyName("ratingFilmCritics")]
+    [JsonConverter(typeof(RatingFlexibleConverter))]
+    public double RatingFilmCritics { get; set; }
+
+    [JsonPropertyName("ratingFilmCriticsVoteCount")]
+    public int? RatingFilmCriticsVoteCount { get; set; }
+
+    [JsonPropertyName("ratingGoodReview")]
+    [JsonConverter(typeof(RatingFlexibleConverter))]
+    public double RatingGoodReview { get; set; }
+
+    [JsonPropertyName("ratingGoodReviewVoteCount")]
+    public int? RatingGoodReviewVoteCount { get; set; }
+
+    [JsonPropertyName("editorAnnotation")]
+    public string? EditorAnnotation { get; set; }
+
+    [JsonPropertyName("productionStatus")]
+    public string? ProductionStatus { get; set; }
 }
 
 /// <summary>
@@ -167,6 +217,16 @@ public class KinopoiskCollectionResponseDto
     [JsonPropertyName("totalPages")]
     public int TotalPages { get; set; }
 }
+
+/// <summary>
+/// Result of GET /api/v2.2/films with filters (order, type, rating, year, genre, country, page).
+/// </summary>
+public record FilmsByFiltersResult(
+    IReadOnlyList<KinopoiskFilmItemDto> Items,
+    int Total,
+    int TotalPages,
+    int Page
+);
 
 /// <summary>
 /// Known collection types for /api/v2.2/films/collections (type parameter).
@@ -338,4 +398,222 @@ public class KinopoiskSeasonsResponseDto
 
     [JsonPropertyName("items")]
     public List<KinopoiskSeasonDto> Items { get; set; } = [];
+}
+
+/// <summary>
+/// Single video item from GET /api/v2.2/films/{id}/videos (trailers, teasers).
+/// </summary>
+public class KinopoiskVideoItemDto
+{
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("site")]
+    public string? Site { get; set; }
+}
+
+/// <summary>
+/// Response from GET /api/v2.2/films/{id}/videos
+/// </summary>
+public class KinopoiskVideosResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskVideoItemDto> Items { get; set; } = [];
+}
+
+/// <summary>Staff item from GET /api/v1/staff?filmId=</summary>
+public class KinopoiskStaffItemDto
+{
+    [JsonPropertyName("staffId")]
+    public int StaffId { get; set; }
+
+    [JsonPropertyName("nameRu")]
+    public string? NameRu { get; set; }
+
+    [JsonPropertyName("nameEn")]
+    public string? NameEn { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("posterUrl")]
+    public string? PosterUrl { get; set; }
+
+    [JsonPropertyName("professionText")]
+    public string? ProfessionText { get; set; }
+
+    [JsonPropertyName("professionKey")]
+    public string? ProfessionKey { get; set; }
+}
+
+/// <summary>Fact or blooper from GET /api/v2.2/films/{id}/facts</summary>
+public class KinopoiskFactDto
+{
+    [JsonPropertyName("text")]
+    public string? Text { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("spoiler")]
+    public bool Spoiler { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/facts</summary>
+public class KinopoiskFactsResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskFactDto> Items { get; set; } = [];
+}
+
+/// <summary>Box office item from GET /api/v2.2/films/{id}/box_office</summary>
+public class KinopoiskBoxOfficeItemDto
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("amount")]
+    public long? Amount { get; set; }
+
+    [JsonPropertyName("currencyCode")]
+    public string? CurrencyCode { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("symbol")]
+    public string? Symbol { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/box_office</summary>
+public class KinopoiskBoxOfficeResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskBoxOfficeItemDto> Items { get; set; } = [];
+}
+
+/// <summary>Award from GET /api/v2.2/films/{id}/awards</summary>
+public class KinopoiskAwardDto
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("win")]
+    public bool Win { get; set; }
+
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    [JsonPropertyName("nominationName")]
+    public string? NominationName { get; set; }
+
+    [JsonPropertyName("year")]
+    public int Year { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/awards</summary>
+public class KinopoiskAwardsResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskAwardDto> Items { get; set; } = [];
+}
+
+/// <summary>Similar film from GET /api/v2.2/films/{id}/similars</summary>
+public class KinopoiskSimilarItemDto
+{
+    [JsonPropertyName("filmId")]
+    public int FilmId { get; set; }
+
+    [JsonPropertyName("nameRu")]
+    public string? NameRu { get; set; }
+
+    [JsonPropertyName("nameEn")]
+    public string? NameEn { get; set; }
+
+    [JsonPropertyName("nameOriginal")]
+    public string? NameOriginal { get; set; }
+
+    [JsonPropertyName("posterUrl")]
+    public string? PosterUrl { get; set; }
+
+    [JsonPropertyName("posterUrlPreview")]
+    public string? PosterUrlPreview { get; set; }
+
+    [JsonPropertyName("relationType")]
+    public string? RelationType { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/similars</summary>
+public class KinopoiskSimilarsResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskSimilarItemDto> Items { get; set; } = [];
+}
+
+/// <summary>Single review from GET /api/v2.2/films/{id}/reviews</summary>
+public class KinopoiskReviewItemDto
+{
+    [JsonPropertyName("kinopoiskId")]
+    public int KinopoiskId { get; set; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("date")]
+    public string? Date { get; set; }
+
+    [JsonPropertyName("positiveRating")]
+    public int PositiveRating { get; set; }
+
+    [JsonPropertyName("negativeRating")]
+    public int NegativeRating { get; set; }
+
+    [JsonPropertyName("author")]
+    public string? Author { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/reviews</summary>
+public class KinopoiskReviewsResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("totalPages")]
+    public int TotalPages { get; set; }
+
+    [JsonPropertyName("totalPositiveReviews")]
+    public int TotalPositiveReviews { get; set; }
+
+    [JsonPropertyName("totalNegativeReviews")]
+    public int TotalNegativeReviews { get; set; }
+
+    [JsonPropertyName("totalNeutralReviews")]
+    public int TotalNeutralReviews { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskReviewItemDto> Items { get; set; } = [];
 }

@@ -37,6 +37,67 @@ public class KinopoiskService(
     }
 
     /// <summary>
+    /// Fetches films by filters: GET /api/v2.2/films. Uses our DB genre/country IDs (no /films/filters call).
+    /// Max 20 per page, max 400 total. API allows at most one genre and one country.
+    /// </summary>
+    public async Task<FilmsByFiltersResult> GetFilmsByFiltersAsync(
+        string order = "RATING",
+        string type = "ALL",
+        double ratingFrom = 0,
+        double ratingTo = 10,
+        int yearFrom = 1000,
+        int yearTo = 3000,
+        int page = 1,
+        int? genreId = null,
+        int? countryId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new List<string>
+        {
+            $"order={Uri.EscapeDataString(order)}",
+            $"type={Uri.EscapeDataString(type)}",
+            $"ratingFrom={ratingFrom}",
+            $"ratingTo={ratingTo}",
+            $"yearFrom={yearFrom}",
+            $"yearTo={yearTo}",
+            $"page={page}"
+        };
+        if (genreId.HasValue)
+            query.Add($"genres={genreId.Value}");
+        if (countryId.HasValue)
+            query.Add($"countries={countryId.Value}");
+
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}?{string.Join("&", query)}";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+        var wrapper = await response.Content.ReadFromJsonAsync<KinopoiskCollectionResponseDto>(options, cancellationToken);
+        var rawItems = wrapper?.Items ?? [];
+        var items = rawItems.Where(i => HasRealPoster(i.PosterUrl, i.PosterUrlPreview)).ToList();
+        return new FilmsByFiltersResult(
+            items,
+            wrapper?.Total ?? 0,
+            wrapper?.TotalPages ?? 0,
+            page
+        );
+    }
+
+    /// <summary>True if the item has a real poster URL (not null/empty and not the no-poster placeholder).</summary>
+    private static bool HasRealPoster(string? posterUrl, string? posterUrlPreview)
+    {
+        var url = posterUrl ?? posterUrlPreview ?? "";
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        if (url.Contains("no-poster", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
+    }
+
+    /// <summary>
     /// Fetches a collection page from /api/v2.2/films/collections?type={type}&amp;page={page}.
     /// Each page contains up to 20 films. Use <see cref="KinopoiskCollectionType"/> for type values.
     /// </summary>
@@ -53,7 +114,8 @@ public class KinopoiskService(
             NumberHandling = JsonNumberHandling.AllowReadingFromString
         };
         var wrapper = await response.Content.ReadFromJsonAsync<KinopoiskCollectionResponseDto>(options, cancellationToken);
-        var items = wrapper?.Items ?? [];
+        var rawItems = wrapper?.Items ?? [];
+        var items = rawItems.Where(i => HasRealPoster(i.PosterUrl, i.PosterUrlPreview)).ToList();
         return new KinopoiskCollectionPageResult(
             items,
             wrapper?.Total ?? 0,
@@ -77,7 +139,8 @@ public class KinopoiskService(
         response.EnsureSuccessStatusCode();
 
         var dto = await response.Content.ReadFromJsonAsync<KinopoiskSearchByKeywordResponseDto>(cancellationToken);
-        var films = dto?.Films ?? [];
+        var rawFilms = dto?.Films ?? [];
+        var films = rawFilms.Where(f => HasRealPoster(f.PosterUrl, f.PosterUrlPreview)).ToList();
         return new KinopoiskSearchByKeywordResult(
             films,
             dto?.SearchFilmsCountResult ?? 0,
@@ -185,5 +248,97 @@ public class KinopoiskService(
         };
         var dto = await response.Content.ReadFromJsonAsync<KinopoiskSeasonsResponseDto>(options, cancellationToken);
         return dto;
+    }
+
+    /// <summary>
+    /// Fetches trailers, teasers and other videos for a film by Kinopoisk ID from /api/v2.2/films/{id}/videos.
+    /// </summary>
+    public async Task<KinopoiskVideosResponseDto?> GetVideosAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/videos";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+        var dto = await response.Content.ReadFromJsonAsync<KinopoiskVideosResponseDto>(options, cancellationToken);
+        return dto;
+    }
+
+    /// <summary>Fetches cast and crew (staff) by film ID: GET /api/v1/staff?filmId=</summary>
+    public async Task<IReadOnlyList<KinopoiskStaffItemDto>> GetStaffAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}/api/v1/staff?filmId={kpId}";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var list = await response.Content.ReadFromJsonAsync<List<KinopoiskStaffItemDto>>(options, cancellationToken);
+        return list ?? [];
+    }
+
+    /// <summary>Fetches facts and bloopers: GET /api/v2.2/films/{id}/facts</summary>
+    public async Task<KinopoiskFactsResponseDto?> GetFactsAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/facts";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskFactsResponseDto>(options, cancellationToken);
+    }
+
+    /// <summary>Fetches box office and budget: GET /api/v2.2/films/{id}/box_office</summary>
+    public async Task<KinopoiskBoxOfficeResponseDto?> GetBoxOfficeAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/box_office";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskBoxOfficeResponseDto>(options, cancellationToken);
+    }
+
+    /// <summary>Fetches awards: GET /api/v2.2/films/{id}/awards</summary>
+    public async Task<KinopoiskAwardsResponseDto?> GetAwardsAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/awards";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskAwardsResponseDto>(options, cancellationToken);
+    }
+
+    /// <summary>Fetches similar films: GET /api/v2.2/films/{id}/similars</summary>
+    public async Task<KinopoiskSimilarsResponseDto?> GetSimilarsAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/similars";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskSimilarsResponseDto>(options, cancellationToken);
+    }
+
+    /// <summary>Fetches viewer reviews: GET /api/v2.2/films/{id}/reviews?page={page}&amp;order={order}</summary>
+    public async Task<KinopoiskReviewsResponseDto?> GetReviewsAsync(int kpId, int page = 1, string order = "DATE_DESC", CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/reviews?page={page}&order={Uri.EscapeDataString(order)}";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskReviewsResponseDto>(options, cancellationToken);
     }
 }

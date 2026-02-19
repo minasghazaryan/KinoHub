@@ -44,4 +44,12 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
+// Seed genres and countries from JSON if tables are empty
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<KinoContext>();
+    var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+    await GenresCountriesSeeder.SeedAsync(context, env.ContentRootPath);
+}
+
 app.Run();

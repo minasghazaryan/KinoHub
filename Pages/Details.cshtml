@@ -14,6 +14,11 @@
         ? string.Join(", ", Model.FilmDetails.Genres.Select(g => g.Genre).Where(g => !string.IsNullOrEmpty(g)))
         : null;
     string DurationStr() => Model.FilmDetails?.FilmLength is > 0 ? $"{Model.FilmDetails.FilmLength} мин." : null;
+    string FilmTypeLabel() => Model.FilmDetails?.Type switch { "FILM" => "Фильм", "TV_SERIES" => "Сериал", "MINI_SERIES" => "Мини-сериал", "TV_SHOW" => "ТВ-шоу", "VIDEO" => "Видео", _ => null };
+    string YearRangeStr() => Model.FilmDetails?.StartYear is > 0 && Model.FilmDetails?.EndYear is > 0
+        ? (Model.FilmDetails.StartYear == Model.FilmDetails.EndYear ? $"{Model.FilmDetails.StartYear}" : $"{Model.FilmDetails.StartYear} – {Model.FilmDetails.EndYear}")
+        : (Model.FilmDetails?.Year > 0 ? $"{Model.FilmDetails.Year}" : null);
+    string FormatMoney(long? amount, string? symbol, string? code) => amount is null or 0 ? null : $"{(symbol ?? "")}{amount:N0} {code ?? ""}".Trim();
 }
 
 <div class="mx-auto max-w-6xl px-4 py-6">
@@ -33,15 +38,44 @@
     else
     {
         @* Title block *@
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            @if (FilmTypeLabel() != null)
+            {
+                <span class="rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-medium text-slate-300">@FilmTypeLabel()</span>
+            }
+            @if (Model.FilmDetails?.Year > 0 || YearRangeStr() != null)
+            {
+                <span class="text-slate-500">@(YearRangeStr() ?? Model.FilmDetails?.Year.ToString())</span>
+            }
+            @if (!string.IsNullOrEmpty(Model.FilmDetails?.RatingAgeLimits))
+            {
+                <span class="rounded border border-slate-600 px-2 py-0.5 text-xs text-slate-400">@Model.FilmDetails.RatingAgeLimits</span>
+            }
+        </div>
         <h1 class="mb-1 text-3xl font-bold text-slate-100 md:text-4xl">@DisplayTitle()</h1>
-        @if (!string.IsNullOrEmpty(Model.FilmDetails.NameEn) && Model.FilmDetails.NameEn != Model.FilmDetails.NameRu)
+        @if (!string.IsNullOrEmpty(Model.FilmDetails!.NameEn) && Model.FilmDetails.NameEn != Model.FilmDetails.NameRu)
         {
-            <p class="mb-6 text-lg text-slate-400">@Model.FilmDetails.NameEn</p>
+            <p class="text-lg text-slate-400">@Model.FilmDetails.NameEn</p>
         }
-        else
+        @if (!string.IsNullOrEmpty(Model.FilmDetails.NameOriginal) && Model.FilmDetails.NameOriginal != Model.FilmDetails.NameRu && Model.FilmDetails.NameOriginal != Model.FilmDetails.NameEn)
         {
-            <div class="mb-6"></div>
+            <p class="text-slate-500">@Model.FilmDetails.NameOriginal</p>
         }
+        @if (!string.IsNullOrWhiteSpace(Model.FilmDetails.Slogan))
+        {
+            <p class="mt-2 italic text-amber-200/90">«@Model.FilmDetails.Slogan»</p>
+        }
+        <div class="mt-3 flex flex-wrap gap-4 text-sm">
+            @if (!string.IsNullOrEmpty(Model.FilmDetails.ImdbId))
+            {
+                <a href="https://www.imdb.com/title/@Model.FilmDetails.ImdbId/" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:underline">IMDb</a>
+            }
+            @if (!string.IsNullOrEmpty(Model.FilmDetails.WebUrl))
+            {
+                <a href="@Model.FilmDetails.WebUrl" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:underline">Кинопоиск</a>
+            }
+        </div>
+        <div class="mb-6"></div>
 
         @* Poster + metadata row (like reference) *@
         <div class="flex flex-col gap-6 lg:flex-row">
@@ -61,58 +95,76 @@
                         <span class="absolute top-3 right-3 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-slate-900">СЕРИАЛ</span>
                     }
                 </div>
-                <a href="#" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-slate-200 transition hover:bg-slate-700 hover:text-white">
-                    <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.84A1.5 1.5 0 014 4v12a1.5 1.5 0 012.3 1.16l9-6a1.5 1.5 0 000-2.32l-9-6z"/></svg>
-                    <span>Смотреть трейлер</span>
-                </a>
+                @{
+                    var firstVideo = Model.Videos?.Items?.FirstOrDefault(v => !string.IsNullOrEmpty(v.Url));
+                }
+                @if (firstVideo != null)
+                {
+                    <a href="@firstVideo.Url" target="_blank" rel="noopener noreferrer" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-slate-200 transition hover:bg-slate-700 hover:text-white">
+                        <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.84A1.5 1.5 0 014 4v12a1.5 1.5 0 012.3 1.16l9-6a1.5 1.5 0 000-2.32l-9-6z"/></svg>
+                        <span>Смотреть трейлер</span>
+                    </a>
+                }
+                else
+                {
+                    <div class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/40 py-3 text-slate-500">
+                        <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.84A1.5 1.5 0 014 4v12a1.5 1.5 0 012.3 1.16l9-6a1.5 1.5 0 000-2.32l-9-6z"/></svg>
+                        <span>Трейлеров нет</span>
+                    </div>
+                }
             </div>
 
             @* Right: metadata list *@
             <div class="min-w-0 flex-1">
                 <dl class="space-y-3 text-sm">
                     @* Рейтинги *@
-                    @if (Model.FilmDetails.RatingImdb > 0 || Model.FilmDetails.RatingKinopoisk > 0)
+                    @if (Model.FilmDetails.RatingImdb > 0 || Model.FilmDetails.RatingKinopoisk > 0 || Model.FilmDetails.RatingFilmCritics > 0 || Model.FilmDetails.RatingGoodReview > 0)
                     {
                         <div>
                             <dt class="mb-1 text-slate-500">Рейтинги:</dt>
-                            <dd class="text-slate-200">
-                                @if (Model.FilmDetails.RatingImdb > 0)
-                                {
-                                    <span>IMDb: @Model.FilmDetails.RatingImdb.ToString("F1")@(Model.FilmDetails.RatingImdbVoteCount > 0 ? $" ({Model.FilmDetails.RatingImdbVoteCount})" : "")</span>
-                                }
-                                @if (Model.FilmDetails.RatingImdb > 0 && Model.FilmDetails.RatingKinopoisk > 0) { <span class="text-slate-500"> · </span> }
-                                @if (Model.FilmDetails.RatingKinopoisk > 0)
-                                {
-                                    <span>Кинопоиск: @Model.FilmDetails.RatingKinopoisk.ToString("F2")@(Model.FilmDetails.RatingKinopoiskVoteCount > 0 ? $" ({Model.FilmDetails.RatingKinopoiskVoteCount})" : "")</span>
-                                }
+                            <dd class="flex flex-wrap gap-x-4 gap-y-1 text-slate-200">
+                                @if (Model.FilmDetails.RatingKinopoisk > 0) { <span>КП: <strong class="text-amber-400">@Model.FilmDetails.RatingKinopoisk.ToString("F1")</strong>@(Model.FilmDetails.RatingKinopoiskVoteCount > 0 ? $" ({Model.FilmDetails.RatingKinopoiskVoteCount:N0})" : "")</span> }
+                                @if (Model.FilmDetails.RatingImdb > 0) { <span>IMDb: <strong>@Model.FilmDetails.RatingImdb.ToString("F1")</strong>@(Model.FilmDetails.RatingImdbVoteCount > 0 ? $" ({Model.FilmDetails.RatingImdbVoteCount:N0})" : "")</span> }
+                                @if (Model.FilmDetails.RatingFilmCritics > 0) { <span>Критики: @Model.FilmDetails.RatingFilmCritics.ToString("F1")@(Model.FilmDetails.RatingFilmCriticsVoteCount > 0 ? $" ({Model.FilmDetails.RatingFilmCriticsVoteCount})" : "")</span> }
+                                @if (Model.FilmDetails.RatingGoodReview > 0) { <span>Положительных рецензий: @Model.FilmDetails.RatingGoodReview.ToString("F0")%@(Model.FilmDetails.RatingGoodReviewVoteCount > 0 ? $" ({Model.FilmDetails.RatingGoodReviewVoteCount})" : "")</span> }
                             </dd>
                         </div>
                     }
-                    @* Дата выхода *@
-                    @if (Model.FilmDetails.Year > 0)
+                    @if (Model.FilmDetails.ReviewsCount > 0)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Дата выхода:</dt>
-                            <dd class="text-slate-200">@Model.FilmDetails.Year года</dd>
+                            <dt class="mb-1 text-slate-500">Рецензий:</dt>
+                            <dd class="text-slate-200">@Model.FilmDetails.ReviewsCount.Value.ToString("N0")</dd>
                         </div>
                     }
-                    @* Страна *@
+                    @if (Model.FilmDetails.Year > 0 && FilmTypeLabel() != "Сериал")
+                    {
+                        <div>
+                            <dt class="mb-1 text-slate-500">Год:</dt>
+                            <dd class="text-slate-200">@Model.FilmDetails.Year</dd>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.FilmDetails.RatingMpaa))
+                    {
+                        <div>
+                            <dt class="mb-1 text-slate-500">MPAA:</dt>
+                            <dd class="text-slate-200">@Model.FilmDetails.RatingMpaa</dd>
+                        </div>
+                    }
                     @if (CountriesStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Страна:</dt>
+                            <dt class="mb-1 text-slate-500">Страны:</dt>
                             <dd class="text-slate-200">@CountriesStr()</dd>
                         </div>
                     }
-                    @* Жанр *@
                     @if (GenresStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Жанр:</dt>
+                            <dt class="mb-1 text-slate-500">Жанры:</dt>
                             <dd class="text-slate-200">@GenresStr()</dd>
                         </div>
                     }
-                    @* Время *@
                     @if (DurationStr() != null)
                     {
                         <div>
@@ -122,28 +174,163 @@
                     }
                 </dl>
 
-                @* Watch online — prominent in this column too *@
+                @* Description (right side of poster) *@
+                @if (!string.IsNullOrWhiteSpace(Model.FilmDetails.Description) || !string.IsNullOrWhiteSpace(Model.FilmDetails.ShortDescription))
+                {
+                    <div class="mt-6">
+                        <h3 class="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">О фильме</h3>
+                        <div class="text-slate-300 text-sm leading-relaxed whitespace-pre-line">@(Model.FilmDetails.Description ?? Model.FilmDetails.ShortDescription)</div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.FilmDetails.EditorAnnotation))
+                {
+                    <div class="mt-4 rounded-lg border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-sm text-amber-200/90">@Model.FilmDetails.EditorAnnotation</div>
+                }
+
+                @* Watch online *@
                 <div class="mt-6">
                     <a href="#" class="inline-block rounded-xl bg-amber-600 px-6 py-3 text-base font-semibold text-slate-900 transition hover:bg-amber-500">Смотреть онлайн</a>
                 </div>
             </div>
         </div>
 
-        @* Synopsis (full width below) *@
-        @if (!string.IsNullOrWhiteSpace(Model.FilmDetails.Description) || !string.IsNullOrWhiteSpace(Model.FilmDetails.ShortDescription))
+        @* Trailers and teasers — collapsible *@
+        @if (Model.Videos != null && Model.Videos.Items != null && Model.Videos.Items.Count > 0)
         {
-            <div class="mt-8 border-t border-slate-800 pt-8">
-                <h2 class="mb-3 text-lg font-semibold text-slate-200">Про что фильм «@DisplayTitle()»:</h2>
-                <div class="text-slate-300 leading-relaxed whitespace-pre-line">@(Model.FilmDetails.Description ?? Model.FilmDetails.ShortDescription)</div>
-            </div>
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Трейлеры и тизеры (@Model.Videos.Items.Count)
+                    </span>
+                </summary>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach (var video in Model.Videos.Items.Where(v => !string.IsNullOrEmpty(v.Url)))
+                    {
+                        <a href="@video.Url" target="_blank" rel="noopener noreferrer" class="flex flex-col gap-1 rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-slate-600 hover:bg-slate-800/60">
+                            <span class="text-sm font-medium text-slate-200 line-clamp-2">@(video.Name ?? "Трейлер")</span>
+                            @if (!string.IsNullOrEmpty(video.Site)) { <span class="inline-flex w-fit rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-400">@video.Site</span> }
+                        </a>
+                    }
+                </div>
+            </details>
         }
 
-        @* Seasons (for series) *@
+        @* Reviews — collapsible *@
+        @if (Model.Reviews != null && Model.Reviews.Items != null && Model.Reviews.Items.Count > 0)
+        {
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Рецензии зрителей (@Model.Reviews.Total)
+                    </span>
+                </summary>
+                <div class="mt-4">
+                    <p class="mb-4 text-sm text-slate-400">
+                        Положительных: @Model.Reviews.TotalPositiveReviews · Отрицательных: @Model.Reviews.TotalNegativeReviews · Нейтральных: @Model.Reviews.TotalNeutralReviews
+                    </p>
+                    <div class="space-y-4">
+                        @foreach (var review in Model.Reviews.Items)
+                        {
+                            <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                                <div class="mb-2 flex flex-wrap items-center gap-2">
+                                    <span class="rounded px-2 py-0.5 text-xs font-medium
+                                        @(review.Type == "POSITIVE" ? "bg-emerald-900/50 text-emerald-300" : review.Type == "NEGATIVE" ? "bg-red-900/50 text-red-300" : "bg-slate-700 text-slate-400")">
+                                        @(review.Type == "POSITIVE" ? "Положительная" : review.Type == "NEGATIVE" ? "Отрицательная" : "Нейтральная")
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(review.Author))
+                                    {
+                                        <span class="text-sm font-medium text-slate-300">@review.Author</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(review.Date) && DateTime.TryParse(review.Date, out var reviewDate))
+                                    {
+                                        <span class="text-xs text-slate-500">@reviewDate.ToString("dd.MM.yyyy")</span>
+                                    }
+                                    <span class="text-xs text-slate-500">👍 @review.PositiveRating · 👎 @review.NegativeRating</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(review.Title))
+                                {
+                                    <h4 class="mb-1 text-sm font-semibold text-slate-200">@review.Title</h4>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(review.Description))
+                                {
+                                    <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-line">@review.Description</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (Model.Reviews.TotalPages > 1)
+                    {
+                        <p class="mt-3 text-sm text-slate-500">Страница 1 из @Model.Reviews.TotalPages (показано до 20 рецензий)</p>
+                    }
+                </div>
+            </details>
+        }
+
+        @* Box office — collapsible *@
+        @if (Model.BoxOffice != null && Model.BoxOffice.Items != null && Model.BoxOffice.Items.Count > 0)
+        {
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Бюджет и сборы
+                    </span>
+                </summary>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach (var item in Model.BoxOffice.Items)
+                    {
+                        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                            <span class="text-xs uppercase text-slate-500">@(item.Type == "BUDGET" ? "Бюджет" : item.Type == "WORLD" ? "Сборы в мире" : item.Type == "RUS" ? "Сборы в РФ" : item.Type)</span>
+                            <p class="mt-1 text-lg font-semibold text-slate-100">@FormatMoney(item.Amount, item.Symbol, item.CurrencyCode)</p>
+                            @if (!string.IsNullOrEmpty(item.Name)) { <p class="text-xs text-slate-500">@item.Name</p> }
+                        </div>
+                    }
+                </div>
+            </details>
+        }
+
+        @* Awards — collapsible *@
+        @if (Model.Awards != null && Model.Awards.Items != null && Model.Awards.Items.Count > 0)
+        {
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Награды (@Model.Awards.Total)
+                    </span>
+                </summary>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach (var award in Model.Awards.Items.Take(24))
+                    {
+                        <div class="flex gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                            @if (!string.IsNullOrEmpty(award.ImageUrl))
+                            {
+                                <img src="@award.ImageUrl" alt="" class="h-14 w-14 shrink-0 rounded object-contain bg-slate-800" />
+                            }
+                            <div class="min-w-0">
+                                <p class="font-medium text-slate-200">@(award.Name ?? "Награда") · @award.Year</p>
+                                <p class="text-sm @(award.Win ? "text-amber-400" : "text-slate-400")">@award.NominationName @(award.Win ? "— победа" : "")</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if (Model.Awards.Items.Count > 24) { <p class="mt-2 text-sm text-slate-500">Показано 24 из @Model.Awards.Total</p> }
+            </details>
+        }
+
+        @* Seasons (for series) — collapsible *@
         @if (Model.IsSeries && Model.Seasons != null && Model.Seasons.Items.Count > 0)
         {
-            <div class="mt-8 border-t border-slate-800 pt-8">
-                <h2 class="mb-4 text-xl font-semibold text-slate-200">Сезоны и серии</h2>
-                <div class="space-y-6">
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Сезоны и серии (@Model.Seasons.Items.Count)
+                    </span>
+                </summary>
+                <div class="mt-4 space-y-6">
                     @foreach (var season in Model.Seasons.Items.OrderBy(s => s.Number))
                     {
                         <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
@@ -177,7 +364,46 @@
                         </div>
                     }
                 </div>
-            </div>
+            </details>
+        }
+
+        @* Similar films — collapsible *@
+        @if (Model.Similars != null && Model.Similars.Items != null && Model.Similars.Items.Count > 0)
+        {
+            <details class="details-section mt-8 border-t border-slate-800 pt-8">
+                <summary class="details-summary cursor-pointer list-none text-xl font-semibold text-slate-200">
+                    <span class="inline-flex items-center gap-2">
+                        <span class="details-marker text-slate-400 select-none"></span>
+                        Похожие фильмы (@Model.Similars.Items.Count)
+                    </span>
+                </summary>
+                <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    @foreach (var sim in Model.Similars.Items.Take(15))
+                    {
+                        <a asp-page="/Details" asp-route-id="@sim.FilmId" class="group flex flex-col">
+                            <div class="aspect-[2/3] overflow-hidden rounded-xl bg-slate-800 shadow-md transition group-hover:ring-2 group-hover:ring-amber-500/50">
+                                @if (!string.IsNullOrEmpty(sim.PosterUrlPreview ?? sim.PosterUrl))
+                                {
+                                    <img src="@(sim.PosterUrl ?? sim.PosterUrlPreview)" alt="" class="h-full w-full object-cover transition group-hover:scale-105" />
+                                }
+                                else
+                                {
+                                    <div class="flex h-full w-full items-center justify-center text-slate-500">Нет постера</div>
+                                }
+                            </div>
+                            <span class="mt-2 line-clamp-2 text-sm font-medium text-slate-200 group-hover:text-amber-400">@(sim.NameRu ?? sim.NameEn ?? sim.NameOriginal ?? "—")</span>
+                        </a>
+                    }
+                </div>
+                @if (Model.Similars.Items.Count > 15) { <p class="mt-2 text-sm text-slate-500">Показано 15 из @Model.Similars.Total</p> }
+            </details>
         }
     }
 </div>
+
+<style>
+    .details-summary::-webkit-details-marker { display: none; }
+    .details-marker { font-size: 1.25rem; line-height: 1; min-width: 1.25rem; text-align: center; }
+    .details-marker::before { content: "+"; }
+    details[open] .details-marker::before { content: "−"; }
+</style>

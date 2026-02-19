@@ -9,6 +9,13 @@ public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsMode
 {
     public KinopoiskFilmDetailsDto? FilmDetails { get; set; }
     public KinopoiskSeasonsResponseDto? Seasons { get; set; }
+    public KinopoiskVideosResponseDto? Videos { get; set; }
+    public IReadOnlyList<KinopoiskStaffItemDto> Staff { get; set; } = [];
+    public KinopoiskFactsResponseDto? Facts { get; set; }
+    public KinopoiskBoxOfficeResponseDto? BoxOffice { get; set; }
+    public KinopoiskAwardsResponseDto? Awards { get; set; }
+    public KinopoiskSimilarsResponseDto? Similars { get; set; }
+    public KinopoiskReviewsResponseDto? Reviews { get; set; }
     public bool IsSeries { get; set; }
     public string? ErrorMessage { get; set; }
 
@@ -37,9 +44,29 @@ public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsMode
             }
             catch
             {
-                // Not a series or seasons endpoint failed - that's OK
                 IsSeries = false;
             }
+
+            // Trailers and teasers
+            try { Videos = await kinopoiskService.GetVideosAsync(id.Value, cancellationToken); } catch { }
+
+            // Staff (cast & crew)
+            try { Staff = await kinopoiskService.GetStaffAsync(id.Value, cancellationToken); } catch { }
+
+            // Facts and bloopers
+            try { Facts = await kinopoiskService.GetFactsAsync(id.Value, cancellationToken); } catch { }
+
+            // Box office
+            try { BoxOffice = await kinopoiskService.GetBoxOfficeAsync(id.Value, cancellationToken); } catch { }
+
+            // Awards
+            try { Awards = await kinopoiskService.GetAwardsAsync(id.Value, cancellationToken); } catch { }
+
+            // Similar films
+            try { Similars = await kinopoiskService.GetSimilarsAsync(id.Value, cancellationToken); } catch { }
+
+            // Reviews (page 1, DATE_DESC)
+            try { Reviews = await kinopoiskService.GetReviewsAsync(id.Value, page: 1, order: "DATE_DESC", cancellationToken); } catch { }
         }
         catch (Exception ex)
         {

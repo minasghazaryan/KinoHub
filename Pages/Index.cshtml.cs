@@ -13,15 +13,38 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     public string? Collection { get; set; }
     public KinopoiskSearchByKeywordResult? SearchResult { get; set; }
     public KinopoiskCollectionPageResult? CollectionResult { get; set; }
+    public FilmsByFiltersResult? FiltersResult { get; set; }
     public int SearchPage { get; set; } = 1;
     public int CollectionPage { get; set; } = 1;
+    public int FiltersPage { get; set; } = 1;
 
-    public async Task OnGetAsync(string? q, string? collection, int page = 1, CancellationToken cancellationToken = default)
+    public int? GenreId { get; set; }
+    public int? CountryId { get; set; }
+    public string Order { get; set; } = "RATING";
+    public string Type { get; set; } = "ALL";
+    public IList<Genre> Genres { get; set; } = [];
+    public IList<Country> Countries { get; set; } = [];
+
+    public async Task OnGetAsync(string? q, string? collection, int? genreId, int? countryId, string? order, string? type, int page = 1, int filtersPage = 0, CancellationToken cancellationToken = default)
     {
         SearchQuery = q;
         Collection = collection;
         SearchPage = page < 1 ? 1 : page;
         CollectionPage = page < 1 ? 1 : page;
+        GenreId = genreId;
+        CountryId = countryId;
+        Order = order ?? "RATING";
+        Type = type ?? "ALL";
+        FiltersPage = filtersPage < 1 ? 1 : filtersPage;
+
+        Genres = await dbContext.Genres.AsNoTracking().Where(g => g.Name != null && g.Name != "").OrderBy(g => g.Name).ToListAsync(cancellationToken);
+        Countries = await dbContext.Countries.AsNoTracking().Where(c => c.Name != null && c.Name != "").OrderBy(c => c.Name).ToListAsync(cancellationToken);
+
+        // Always load top movies for the carousel (shown on main, novinki, seriali, top 250, catalog).
+        var carouselQuery = dbContext.Movies.AsNoTracking()
+            .OrderByDescending(m => m.Rating ?? 0)
+            .ThenByDescending(m => m.Id);
+        Movies = await carouselQuery.ToListAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -45,13 +68,22 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
                 CollectionResult = new KinopoiskCollectionPageResult([], 0, 0, CollectionPage);
             }
         }
-        else
+        else if (genreId.HasValue || countryId.HasValue || filtersPage >= 1)
         {
-            var query = dbContext.Movies.AsNoTracking();
-            Movies = await query
-                .OrderByDescending(m => m.Rating ?? 0)
-                .ThenByDescending(m => m.Id)
-                .ToListAsync(cancellationToken);
+            try
+            {
+                FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(
+                    order: Order,
+                    type: Type,
+                    page: FiltersPage,
+                    genreId: genreId,
+                    countryId: countryId,
+                    cancellationToken: cancellationToken);
+            }
+            catch
+            {
+                FiltersResult = new FilmsByFiltersResult([], 0, 0, FiltersPage);
+            }
         }
     }
 }
