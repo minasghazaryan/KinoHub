@@ -1,3 +1,4 @@
+using KinoHub.Web;
 using KinoHub.Web.Models;
 using KinoHub.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -5,10 +6,14 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace KinoHub.Web.Pages;
 
-public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsModel> logger) : PageModel
+public class DetailsModel(KinopoiskService kinopoiskService, VibixService vibixService, IConfiguration configuration, ILogger<DetailsModel> logger) : PageModel
 {
     public KinopoiskFilmDetailsDto? FilmDetails { get; set; }
+    /// <summary>Vibix Publisher ID for SDK player (data-publisher-id). From Vibix:PublisherId.</summary>
+    public string? VibixPublisherId { get; set; }
     public KinopoiskSeasonsResponseDto? Seasons { get; set; }
+    public VibixVideoDto? VibixVideo { get; set; }
+    public IReadOnlyList<VibixVoiceoverDto> VoiceoversList { get; set; } = [];
     public KinopoiskVideosResponseDto? Videos { get; set; }
     public IReadOnlyList<KinopoiskStaffItemDto> Staff { get; set; } = [];
     public KinopoiskFactsResponseDto? Facts { get; set; }
@@ -29,6 +34,7 @@ public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsMode
 
         try
         {
+            VibixPublisherId = configuration["Vibix:PublisherId"];
             FilmDetails = await kinopoiskService.GetMovieDetailsAsync(id.Value, cancellationToken);
             if (FilmDetails == null)
             {
@@ -67,6 +73,22 @@ public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsMode
 
             // Reviews (page 1, DATE_DESC)
             try { Reviews = await kinopoiskService.GetReviewsAsync(id.Value, page: 1, order: "DATE_DESC", cancellationToken); } catch { }
+
+            // Vibix: video player and voiceovers for this film
+            try
+            {
+                VibixVideo = await vibixService.GetVideoByKpIdAsync(id.Value, cancellationToken);
+                var voiceoversResponse = await vibixService.GetVoiceoversAsync(cancellationToken);
+                if (VibixVideo?.Voiceovers != null && VibixVideo.Voiceovers.Count > 0)
+                    VoiceoversList = VibixVideo.Voiceovers;
+                else if (voiceoversResponse?.Success == true && voiceoversResponse.Data?.Count > 0)
+                    VoiceoversList = voiceoversResponse.Data;
+            }
+            catch { }
+        }
+        catch (KinopoiskQuotaExceededException)
+        {
+            ErrorMessage = "Превышена квота API Кинопоиска. Проверьте ключ и лимиты на https://kinopoiskapiunofficial.tech";
         }
         catch (Exception ex)
         {
@@ -76,4 +98,5 @@ public class DetailsModel(KinopoiskService kinopoiskService, ILogger<DetailsMode
 
         return Page();
     }
+
 }

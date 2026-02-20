@@ -68,8 +68,9 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
                 CollectionResult = new KinopoiskCollectionPageResult([], 0, 0, CollectionPage);
             }
         }
-        else if (genreId.HasValue || countryId.HasValue || filtersPage >= 1)
+        else
         {
+            // Main page / catalog: load films by default "по рейтингу" (Order = RATING)
             try
             {
                 FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(

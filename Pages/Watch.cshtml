@@ -1,0 +1,58 @@
+@page
+@model KinoHub.Web.Pages.WatchModel
+@{
+    ViewData["Title"] = Model.Video != null
+        ? (Model.Video.NameRus ?? Model.Video.NameEng ?? Model.Video.Name ?? "Смотреть")
+        : "Смотреть онлайн";
+}
+
+<div class="mx-auto max-w-6xl px-4 py-6">
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-slate-300">
+            <p>@Model.ErrorMessage</p>
+            <a asp-page="/Index" class="mt-4 inline-block text-amber-400 hover:underline">← На главную</a>
+        </div>
+    }
+    else if (Model.Video != null)
+    {
+        <div class="mb-4">
+            <a asp-page="/Index" class="text-sm text-slate-400 hover:text-amber-400">← На главную</a>
+        </div>
+
+        <h1 class="mb-4 text-xl font-semibold text-slate-100">
+            @(Model.Video.NameRus ?? Model.Video.NameEng ?? Model.Video.Name ?? "Смотреть онлайн")
+        </h1>
+
+        @if (!string.IsNullOrEmpty(Model.Video.IframeUrl))
+        {
+            <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                <iframe
+                    src="@Model.Video.IframeUrl"
+                    class="absolute inset-0 h-full w-full"
+                    allowfullscreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    title="Плеер"></iframe>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Model.Video.EmbedCode))
+        {
+            <div class="prose prose-invert max-w-none">
+                @Html.Raw(Model.Video.EmbedCode)
+            </div>
+        }
+        else
+        {
+            <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-slate-400">
+                Плеер для этого видео недоступен.
+            </div>
+        }
+
+        @if (Model.Video.Voiceovers.Count > 0)
+        {
+            <p class="mt-4 text-sm text-slate-500">
+                Перевод: @string.Join(", ", Model.Video.Voiceovers.Select(v => v.Name).Where(n => !string.IsNullOrEmpty(n)))
+            </p>
+        }
+    }
+</div>

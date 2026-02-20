@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.Http.Json;
+using KinoHub.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KinoHub.Web.Data;
@@ -10,6 +12,7 @@ namespace KinoHub.Web.Services;
 public class KinopoiskService(
     IHttpClientFactory httpClientFactory,
     KinoContext dbContext,
+    IApiCacheService apiCache,
     ILogger<KinopoiskService> logger)
 {
     private const string BaseAddress = "https://kinopoiskapiunofficial.tech";
@@ -18,23 +21,28 @@ public class KinopoiskService(
     private const string SearchByKeywordPath = "/api/v2.1/films/search-by-keyword";
 
     /// <summary>
-    /// Fetches film details by Kinopoisk ID from /api/v2.2/films/{id}.
+    /// Fetches film details by Kinopoisk ID from /api/v2.2/films/{id}. Cached for 10–30 min.
     /// </summary>
-    public async Task<KinopoiskFilmDetailsDto?> GetMovieDetailsAsync(int kpId, CancellationToken cancellationToken = default)
-    {
-        var client = httpClientFactory.CreateClient("Kinopoisk");
-        var url = $"{BaseAddress}{FilmsPath}/{kpId}";
-        var response = await client.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var options = new JsonSerializerOptions
+    public Task<KinopoiskFilmDetailsDto?> GetMovieDetailsAsync(int kpId, CancellationToken cancellationToken = default) =>
+        apiCache.GetOrCreateAsync("kinopoisk", $"film:{kpId}", async ct =>
         {
-            PropertyNameCaseInsensitive = true,
-            NumberHandling = JsonNumberHandling.AllowReadingFromString
-        };
-        var dto = await response.Content.ReadFromJsonAsync<KinopoiskFilmDetailsDto>(options, cancellationToken);
-        return dto;
-    }
+            var client = httpClientFactory.CreateClient("Kinopoisk");
+            var url = $"{BaseAddress}{FilmsPath}/{kpId}";
+            var response = await client.GetAsync(url, ct);
+            if (response.StatusCode == HttpStatusCode.PaymentRequired)
+            {
+                logger.LogWarning("Kinopoisk API returned 402 Payment Required. Check API key quota at https://kinopoiskapiunofficial.tech");
+                throw new KinopoiskQuotaExceededException();
+            }
+            response.EnsureSuccessStatusCode();
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                NumberHandling = JsonNumberHandling.AllowReadingFromString
+            };
+            return await response.Content.ReadFromJsonAsync<KinopoiskFilmDetailsDto>(options, ct);
+        }, cancellationToken);
 
     /// <summary>
     /// Fetches films by filters: GET /api/v2.2/films. Uses our DB genre/country IDs (no /films/filters call).
@@ -70,6 +78,11 @@ public class KinopoiskService(
         var client = httpClientFactory.CreateClient("Kinopoisk");
         var url = $"{BaseAddress}{FilmsPath}?{string.Join("&", query)}";
         var response = await client.GetAsync(url, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.PaymentRequired)
+        {
+            logger.LogWarning("Kinopoisk API returned 402 Payment Required. Check API key quota.");
+            return new FilmsByFiltersResult([], 0, 0, page);
+        }
         response.EnsureSuccessStatusCode();
 
         var options = new JsonSerializerOptions
@@ -106,6 +119,11 @@ public class KinopoiskService(
         var client = httpClientFactory.CreateClient("Kinopoisk");
         var url = $"{BaseAddress}{CollectionsPath}?type={Uri.EscapeDataString(type)}&page={page}";
         var response = await client.GetAsync(url, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.PaymentRequired)
+        {
+            logger.LogWarning("Kinopoisk API returned 402 Payment Required. Check API key quota.");
+            return new KinopoiskCollectionPageResult([], 0, 0, page);
+        }
         response.EnsureSuccessStatusCode();
 
         var options = new JsonSerializerOptions
@@ -136,6 +154,11 @@ public class KinopoiskService(
         var client = httpClientFactory.CreateClient("Kinopoisk");
         var url = $"{BaseAddress}{SearchByKeywordPath}?keyword={Uri.EscapeDataString(keyword.Trim())}&page={page}";
         var response = await client.GetAsync(url, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.PaymentRequired)
+        {
+            logger.LogWarning("Kinopoisk API returned 402 Payment Required. Check API key quota.");
+            return new KinopoiskSearchByKeywordResult([], 0, 0, keyword.Trim(), page);
+        }
         response.EnsureSuccessStatusCode();
 
         var dto = await response.Content.ReadFromJsonAsync<KinopoiskSearchByKeywordResponseDto>(cancellationToken);
