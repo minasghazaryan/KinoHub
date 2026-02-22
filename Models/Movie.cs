@@ -15,4 +15,6 @@ public class Movie
     public string PosterPath { get; set; } = string.Empty;
 
     public List<StreamSource> StreamSources { get; set; } = new();
+    public List<Genre> Genres { get; set; } = new();
+    public List<Country> Countries { get; set; } = new();
 }

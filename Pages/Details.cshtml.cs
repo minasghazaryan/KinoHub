@@ -74,15 +74,12 @@ public class DetailsModel(KinopoiskService kinopoiskService, VibixService vibixS
             // Reviews (page 1, DATE_DESC)
             try { Reviews = await kinopoiskService.GetReviewsAsync(id.Value, page: 1, order: "DATE_DESC", cancellationToken); } catch { }
 
-            // Vibix: video player and voiceovers for this film
+            // Vibix: video player and voiceovers for this film (from GET .../videos/kp/{id} only)
             try
             {
                 VibixVideo = await vibixService.GetVideoByKpIdAsync(id.Value, cancellationToken);
-                var voiceoversResponse = await vibixService.GetVoiceoversAsync(cancellationToken);
                 if (VibixVideo?.Voiceovers != null && VibixVideo.Voiceovers.Count > 0)
                     VoiceoversList = VibixVideo.Voiceovers;
-                else if (voiceoversResponse?.Success == true && voiceoversResponse.Data?.Count > 0)
-                    VoiceoversList = voiceoversResponse.Data;
             }
             catch { }
         }

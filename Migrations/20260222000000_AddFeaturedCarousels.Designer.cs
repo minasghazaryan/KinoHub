@@ -4,6 +4,7 @@ using KinoHub.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KinoHub.Web.Migrations
 {
     [DbContext(typeof(KinoContext))]
-    partial class KinoContextModelSnapshot : ModelSnapshot
+    [Migration("20260222000000_AddFeaturedCarousels")]
+    partial class AddFeaturedCarousels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -200,60 +203,6 @@ namespace KinoHub.Web.Migrations
                     b.ToTable("FeaturedCarousels");
                 });
 
-            modelBuilder.Entity("MovieGenre", b =>
-                {
-                    b.Property<int>("MoviesId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GenresId")
-                        .HasColumnType("int");
-
-                    b.HasKey("MoviesId", "GenresId");
-
-                    b.HasIndex("GenresId");
-
-                    b.ToTable("MovieGenres");
-
-                    b.HasOne("KinoHub.Web.Models.Genre", null)
-                        .WithMany()
-                        .HasForeignKey("GenresId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KinoHub.Web.Models.Movie", null)
-                        .WithMany()
-                        .HasForeignKey("MoviesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MovieCountry", b =>
-                {
-                    b.Property<int>("MoviesId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CountriesId")
-                        .HasColumnType("int");
-
-                    b.HasKey("MoviesId", "CountriesId");
-
-                    b.HasIndex("CountriesId");
-
-                    b.ToTable("MovieCountries");
-
-                    b.HasOne("KinoHub.Web.Models.Country", null)
-                        .WithMany()
-                        .HasForeignKey("CountriesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KinoHub.Web.Models.Movie", null)
-                        .WithMany()
-                        .HasForeignKey("MoviesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("KinoHub.Web.Models.StreamSource", b =>
                 {
                     b.HasOne("KinoHub.Web.Models.Movie", "Movie")
@@ -268,18 +217,6 @@ namespace KinoHub.Web.Migrations
             modelBuilder.Entity("KinoHub.Web.Models.Movie", b =>
                 {
                     b.Navigation("StreamSources");
-                    b.Navigation("Genres");
-                    b.Navigation("Countries");
-                });
-
-            modelBuilder.Entity("KinoHub.Web.Models.Genre", b =>
-                {
-                    b.Navigation("Movies");
-                });
-
-            modelBuilder.Entity("KinoHub.Web.Models.Country", b =>
-                {
-                    b.Navigation("Movies");
                 });
 #pragma warning restore 612, 618
         }

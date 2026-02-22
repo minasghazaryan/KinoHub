@@ -1,3 +1,17 @@
+@inject IConfiguration Configuration
+@{
+    var vibixEnableUnionAds = Configuration.GetValue<bool>("Vibix:EnableUnionAds");
+    var vibixPublisherId = Configuration["Vibix:PublisherId"]?.Trim();
+    var vibixUnionAdTypes = Configuration["Vibix:UnionAdTypes"]?.Trim();
+    var vibixFlyrollPositionRaw = Configuration["Vibix:FlyrollPosition"]?.Trim();
+
+    var vibixUnionEnabled = vibixEnableUnionAds && !string.IsNullOrEmpty(vibixPublisherId);
+    var vibixUnionAdTypesSafe = string.IsNullOrEmpty(vibixUnionAdTypes) ? "flyroll" : vibixUnionAdTypes;
+    var validFlyrollPositions = new[] { "1", "2", "3", "4" };
+    var vibixFlyrollPositionSafe = !string.IsNullOrEmpty(vibixFlyrollPositionRaw) && validFlyrollPositions.Contains(vibixFlyrollPositionRaw)
+        ? vibixFlyrollPositionRaw
+        : null;
+}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,6 +21,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100">
+    @if (vibixUnionEnabled)
+    {
+        <ins id="vibix_union"
+             data-publisher_id="@vibixPublisherId"
+             data-add_types="@vibixUnionAdTypesSafe"
+             @if (vibixFlyrollPositionSafe != null) { <text> data-position="@vibixFlyrollPositionSafe"</text> }></ins>
+        <script type="text/javascript" src="https://v-js-menu.run/public/lib.en.min.js"></script>
+    }
     <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
             <a class="text-xl font-bold tracking-tight text-amber-400" asp-page="/Index">KINOHUB</a>
@@ -26,12 +48,19 @@
                 <a asp-page="/Index" class="rounded px-4 py-2 text-sm font-medium @(string.IsNullOrEmpty(navCollection) ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">ГЛАВНАЯ</a>
                 <a asp-page="/Index" asp-route-collection="TOP_POPULAR_ALL" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "TOP_POPULAR_ALL" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">НОВИНКИ</a>
                 <a asp-page="/Index" asp-route-collection="POPULAR_SERIES" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "POPULAR_SERIES" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">СЕРИАЛЫ</a>
-                <a asp-page="/Index" asp-route-collection="TOP_250_MOVIES" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "TOP_250_MOVIES" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">ТОП 250</a>
+                <a asp-page="/Index" asp-route-collection="ANIME" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "ANIME" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">АНИМЕ</a>
+                <a asp-page="/Index" asp-route-collection="KIDS_ANIMATION_THEME" class="rounded px-4 py-2 text-sm font-medium @(navCollection == "KIDS_ANIMATION_THEME" ? "bg-amber-400/10 text-amber-400" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100")">МУЛЬТФИЛМЫ</a>
                 <a asp-page="/Admin/Index" class="rounded px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-100">Admin</a>
             </div>
         </nav>
     </header>
     <main role="main" class="min-h-screen">
+        @if (vibixUnionEnabled && vibixUnionAdTypesSafe.Contains("banners", StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="mx-auto max-w-7xl px-4 py-2 flex justify-center">
+                <ins data-pa-b="300x250"></ins>
+            </div>
+        }
         @RenderBody()
     </main>
     <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>

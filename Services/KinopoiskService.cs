@@ -18,6 +18,7 @@ public class KinopoiskService(
     private const string BaseAddress = "https://kinopoiskapiunofficial.tech";
     private const string FilmsPath = "/api/v2.2/films";
     private const string CollectionsPath = "/api/v2.2/films/collections";
+    private const string PremieresPath = "/api/v2.2/films/premieres";
     private const string SearchByKeywordPath = "/api/v2.1/films/search-by-keyword";
 
     /// <summary>
@@ -101,6 +102,67 @@ public class KinopoiskService(
         );
     }
 
+    private const int CatalogPageSize = 20;
+
+    /// <summary>
+    /// Loads catalog from DB with optional genre/country/year filter and rating order. Use when movies are synced with genres/countries.
+    /// </summary>
+    public async Task<FilmsByFiltersResult> GetMoviesFromDbAsync(
+        int? genreId = null,
+        int? countryId = null,
+        int? year = null,
+        string order = "RATING",
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var pageNum = page < 1 ? 1 : page;
+        var query = dbContext.Movies
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(m => m.Genres)
+            .Include(m => m.Countries)
+            .Where(m => m.KinopoiskId != null);
+
+        if (genreId.HasValue)
+            query = query.Where(m => m.Genres.Any(g => g.Id == genreId.Value));
+        if (countryId.HasValue)
+            query = query.Where(m => m.Countries.Any(c => c.Id == countryId.Value));
+        if (year.HasValue)
+            query = query.Where(m => m.ReleaseYear != null && m.ReleaseYear == year.Value.ToString());
+
+        query = order?.ToUpperInvariant() == "YEAR" || order == "NUM_VOTE"
+            ? query.OrderByDescending(m => m.ReleaseYear).ThenByDescending(m => m.Rating ?? 0)
+            : query.OrderByDescending(m => m.Rating ?? 0).ThenByDescending(m => m.Id);
+
+        var total = await query.CountAsync(cancellationToken);
+        var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)CatalogPageSize);
+        var movies = await query
+            .Skip((pageNum - 1) * CatalogPageSize)
+            .Take(CatalogPageSize)
+            .ToListAsync(cancellationToken);
+
+        var items = movies.Select(MovieToFilmItemDto).ToList();
+        return new FilmsByFiltersResult(items, total, totalPages, pageNum);
+    }
+
+    private static KinopoiskFilmItemDto MovieToFilmItemDto(Movie m)
+    {
+        var year = int.TryParse(m.ReleaseYear, out var y) ? y : (int?)null;
+        return new KinopoiskFilmItemDto
+        {
+            KinopoiskId = m.KinopoiskId ?? 0,
+            NameRu = m.NameRu,
+            NameEn = m.Title,
+            NameOriginal = m.Title,
+            Countries = m.Countries.Select(c => new KinopoiskCountryDto { Country = c.Name }).ToList(),
+            Genres = m.Genres.Select(g => new KinopoiskGenreDto { Genre = g.Name }).ToList(),
+            RatingKinopoisk = m.Rating ?? 0,
+            Year = year,
+            PosterUrl = m.PosterPath,
+            PosterUrlPreview = m.PosterPath
+        };
+    }
+
     /// <summary>True if the item has a real poster URL (not null/empty and not the no-poster placeholder).</summary>
     private static bool HasRealPoster(string? posterUrl, string? posterUrlPreview)
     {
@@ -140,6 +202,29 @@ public class KinopoiskService(
             wrapper?.TotalPages ?? 0,
             page
         );
+    }
+
+    /// <summary>
+    /// Fetches premieres: GET /api/v2.2/films/premieres?year={year}&amp;month={month}.
+    /// Month must be uppercase English (e.g. JANUARY, APRIL).
+    /// </summary>
+    public async Task<KinopoiskPremieresResponseDto?> GetPremieresAsync(int year, string month, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{PremieresPath}?year={year}&month={Uri.EscapeDataString(month)}";
+        var response = await client.GetAsync(url, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.PaymentRequired)
+        {
+            logger.LogWarning("Kinopoisk API returned 402 Payment Required. Check API key quota.");
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+        return await response.Content.ReadFromJsonAsync<KinopoiskPremieresResponseDto>(options, cancellationToken);
     }
 
     /// <summary>
@@ -184,7 +269,7 @@ public class KinopoiskService(
 
     /// <summary>
     /// Saves or updates movies in the database from the given Kinopoisk film items.
-    /// Matches by KinopoiskId; inserts new or updates existing (Title/NameRu, Description, ReleaseYear, PosterPath, Rating).
+    /// Matches by KinopoiskId; inserts new or updates existing (Title/NameRu, Description, ReleaseYear, PosterPath, Rating, Genres, Countries).
     /// </summary>
     public async Task<int> SaveOrUpdateMoviesAsync(IEnumerable<KinopoiskFilmItemDto> items, CancellationToken cancellationToken = default)
     {
@@ -192,8 +277,27 @@ public class KinopoiskService(
         if (list.Count == 0)
             return 0;
 
+        var genresList = await dbContext.Genres.ToListAsync(cancellationToken);
+        var genresByName = new Dictionary<string, Genre>(StringComparer.OrdinalIgnoreCase);
+        foreach (var g in genresList)
+        {
+            var key = g.Name.Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(key) && !genresByName.ContainsKey(key))
+                genresByName[key] = g;
+        }
+        var countriesList = await dbContext.Countries.ToListAsync(cancellationToken);
+        var countriesByName = new Dictionary<string, Country>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in countriesList)
+        {
+            var key = c.Name.Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(key) && !countriesByName.ContainsKey(key))
+                countriesByName[key] = c;
+        }
+
         var kpIds = list.Select(x => x.KinopoiskId).ToList();
         var existing = await dbContext.Movies
+            .Include(m => m.Genres)
+            .Include(m => m.Countries)
             .Where(m => m.KinopoiskId != null && kpIds.Contains(m.KinopoiskId.Value))
             .ToDictionaryAsync(m => m.KinopoiskId!.Value, cancellationToken);
 
@@ -204,6 +308,9 @@ public class KinopoiskService(
             var posterUrl = item.PosterUrl ?? item.PosterUrlPreview ?? "";
             var year = item.Year.HasValue ? item.Year.Value.ToString() : "";
 
+            var genreList = ResolveGenres(item.Genres, genresByName);
+            var countryList = ResolveCountries(item.Countries, countriesByName);
+
             if (existing.TryGetValue(item.KinopoiskId, out var movie))
             {
                 movie.Title = title;
@@ -211,11 +318,17 @@ public class KinopoiskService(
                 movie.ReleaseYear = year;
                 movie.PosterPath = posterUrl;
                 movie.Rating = item.RatingKinopoisk;
+                movie.Genres.Clear();
+                foreach (var g in genreList)
+                    movie.Genres.Add(g);
+                movie.Countries.Clear();
+                foreach (var c in countryList)
+                    movie.Countries.Add(c);
                 updated++;
             }
             else
             {
-                await dbContext.Movies.AddAsync(new Movie
+                var newMovie = new Movie
                 {
                     KinopoiskId = item.KinopoiskId,
                     Title = title,
@@ -225,14 +338,47 @@ public class KinopoiskService(
                     PosterPath = posterUrl,
                     Rating = item.RatingKinopoisk,
                     ImdbId = $"kp-{item.KinopoiskId}" // Synthetic key so unique constraint holds
-                }, cancellationToken);
+                };
+                foreach (var g in genreList)
+                    newMovie.Genres.Add(g);
+                foreach (var c in countryList)
+                    newMovie.Countries.Add(c);
+                await dbContext.Movies.AddAsync(newMovie, cancellationToken);
                 updated++;
             }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Saved or updated {Count} movies from Kinopoisk.", updated);
+        logger.LogInformation("Saved or updated {Count} movies from Kinopoisk (with genres/countries).", updated);
         return updated;
+    }
+
+    private static List<Genre> ResolveGenres(List<KinopoiskGenreDto>? apiGenres, IReadOnlyDictionary<string, Genre> byName)
+    {
+        var list = new List<Genre>();
+        if (apiGenres == null) return list;
+        foreach (var g in apiGenres)
+        {
+            var name = (g.Genre ?? "").Trim();
+            if (string.IsNullOrEmpty(name)) continue;
+            if (byName.TryGetValue(name.ToLowerInvariant(), out var genre))
+                list.Add(genre);
+        }
+        return list;
+    }
+
+    private static List<Country> ResolveCountries(List<KinopoiskCountryDto>? apiCountries, IReadOnlyDictionary<string, Country> byName)
+    {
+        var list = new List<Country>();
+        if (apiCountries == null) return list;
+        foreach (var c in apiCountries)
+        {
+            var name = (c.Country ?? "").Trim();
+            if (string.IsNullOrEmpty(name)) continue;
+            if (byName.TryGetValue(name.ToLowerInvariant(), out var country))
+                list.Add(country);
+        }
+        return list;
     }
 
     /// <summary>

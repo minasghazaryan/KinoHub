@@ -39,12 +39,6 @@ builder.Services.AddSingleton<IApiCacheService, ApiCacheService>();
 builder.Services.AddDbContext<KinoContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddHttpClient("RapidApiMovie", client =>
-{
-    client.BaseAddress = new Uri("https://movie-database-imdb-alternative.p.rapidapi.com/");
-});
-builder.Services.AddScoped<RapidApiMovieService>();
-
 builder.Services.AddHttpClient("Kinopoisk", (sp, client) =>
 {
     client.BaseAddress = new Uri("https://kinopoiskapiunofficial.tech");

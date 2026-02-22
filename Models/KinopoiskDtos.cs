@@ -218,6 +218,51 @@ public class KinopoiskCollectionResponseDto
     public int TotalPages { get; set; }
 }
 
+/// <summary>Item from GET /api/v2.2/films/premieres (items[] element).</summary>
+public class KinopoiskPremiereItemDto
+{
+    [JsonPropertyName("kinopoiskId")]
+    public int KinopoiskId { get; set; }
+
+    [JsonPropertyName("nameRu")]
+    public string? NameRu { get; set; }
+
+    [JsonPropertyName("nameEn")]
+    public string? NameEn { get; set; }
+
+    [JsonPropertyName("year")]
+    [JsonConverter(typeof(YearFlexibleConverter))]
+    public int? Year { get; set; }
+
+    [JsonPropertyName("posterUrl")]
+    public string? PosterUrl { get; set; }
+
+    [JsonPropertyName("posterUrlPreview")]
+    public string? PosterUrlPreview { get; set; }
+
+    [JsonPropertyName("countries")]
+    public List<KinopoiskCountryDto> Countries { get; set; } = [];
+
+    [JsonPropertyName("genres")]
+    public List<KinopoiskGenreDto> Genres { get; set; } = [];
+
+    [JsonPropertyName("duration")]
+    public int? Duration { get; set; }
+
+    [JsonPropertyName("premiereRu")]
+    public string? PremiereRu { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/premieres?year={year}&amp;month={month}.</summary>
+public class KinopoiskPremieresResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskPremiereItemDto>? Items { get; set; }
+}
+
 /// <summary>
 /// Result of GET /api/v2.2/films with filters (order, type, rating, year, genre, country, page).
 /// </summary>
@@ -247,6 +292,7 @@ public static class KinopoiskCollectionType
     public const string CatastropheTheme = "CATASTROPHE_THEME";
     public const string KidsAnimationTheme = "KIDS_ANIMATION_THEME";
     public const string PopularSeries = "POPULAR_SERIES";
+    public const string Anime = "ANIME";
 
     /// <summary>All supported type values for dropdowns.</summary>
     public static IReadOnlyList<(string Value, string Label)> All { get; } =
@@ -265,6 +311,7 @@ public static class KinopoiskCollectionType
         (ZombieTheme, "Zombie theme"),
         (CatastropheTheme, "Catastrophe theme"),
         (KidsAnimationTheme, "Kids animation"),
+        (Anime, "Anime"),
     ];
 }
 
