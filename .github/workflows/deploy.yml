@@ -1,0 +1,44 @@
+name: Deploy to Server via SSH (Password)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+
+            APP_DIR="/var/www/myapp"
+
+            echo "Creating app directory if not exists..."
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+
+            if [ ! -d ".git" ]; then
+              echo "Cloning repository..."
+              git clone ${{ secrets.REPO_URL }} .
+            else
+              echo "Pulling latest changes..."
+              git fetch --all
+              git reset --hard origin/main
+            fi
+
+            echo "Stopping old containers..."
+            docker compose down || true
+
+            echo "Building and starting containers..."
+            docker compose up -d --build
+
+            echo "Deployment finished successfully."

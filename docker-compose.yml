@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=KinoHubDb;User Id=sa;Password=KinoHub_Sql_Secret_123;TrustServerCertificate=True;MultipleActiveResultSets=true;
+      # Set your keys (or use .env file):
+      - KinopoiskApiKey=${KinopoiskApiKey:-}
+      - Vibix__BearerToken=${Vibix__BearerToken:-}
+      - Vibix__PublisherId=${Vibix__PublisherId:-}
+    depends_on:
+      - sqlserver
+    restart: unless-stopped
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=KinoHub_Sql_Secret_123
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+volumes:
+  sqlserver-data:
