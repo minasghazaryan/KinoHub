@@ -218,13 +218,13 @@ namespace KinoHub.Web.Migrations
                     b.ToTable("MovieGenres");
 
                     b.HasOne("KinoHub.Web.Models.Genre", null)
-                        .WithMany()
+                        .WithMany("Movies")
                         .HasForeignKey("GenresId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KinoHub.Web.Models.Movie", null)
-                        .WithMany()
+                        .WithMany("Genres")
                         .HasForeignKey("MoviesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -245,13 +245,13 @@ namespace KinoHub.Web.Migrations
                     b.ToTable("MovieCountries");
 
                     b.HasOne("KinoHub.Web.Models.Country", null)
-                        .WithMany()
+                        .WithMany("Movies")
                         .HasForeignKey("CountriesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KinoHub.Web.Models.Movie", null)
-                        .WithMany()
+                        .WithMany("Countries")
                         .HasForeignKey("MoviesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
