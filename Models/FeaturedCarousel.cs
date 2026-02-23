@@ -11,6 +11,7 @@ public class FeaturedCarousel
     public int DisplayOrder { get; set; }
     public string? NameRu { get; set; }
     public string? NameEn { get; set; }
+
     public string? PosterUrl { get; set; }
     public string? ReleaseYear { get; set; }
     public double? Rating { get; set; }
