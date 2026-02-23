@@ -400,6 +400,54 @@ public class KinopoiskService(
     }
 
     /// <summary>
+    /// Main sync: GET /api/v2.2/films (order, type, rating, year, page). Syncs one page to the database.
+    /// </summary>
+    public async Task<int> SyncFilmsByFiltersToDatabaseAsync(
+        string order = "RATING",
+        string type = "ALL",
+        double ratingFrom = 0,
+        double ratingTo = 10,
+        int yearFrom = 1000,
+        int yearTo = 3000,
+        int page = 1,
+        int? genreId = null,
+        int? countryId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await GetFilmsByFiltersAsync(order, type, ratingFrom, ratingTo, yearFrom, yearTo, page, genreId, countryId, cancellationToken);
+        return await SaveOrUpdateMoviesAsync(result.Items, cancellationToken);
+    }
+
+    /// <summary>
+    /// Syncs all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.). API returns max 400 items (20 pages).
+    /// </summary>
+    public async Task<(int TotalSynced, int TotalPages)> SyncAllFilmsByFiltersToDatabaseAsync(
+        string order = "RATING",
+        string type = "ALL",
+        double ratingFrom = 0,
+        double ratingTo = 10,
+        int yearFrom = 1000,
+        int yearTo = 3000,
+        int? genreId = null,
+        int? countryId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var first = await GetFilmsByFiltersAsync(order, type, ratingFrom, ratingTo, yearFrom, yearTo, 1, genreId, countryId, cancellationToken);
+        var totalPages = first.TotalPages;
+        if (totalPages <= 0)
+            return (first.Items.Count, 1);
+
+        var totalSynced = 0;
+        for (var page = 1; page <= totalPages; page++)
+        {
+            var count = await SyncFilmsByFiltersToDatabaseAsync(order, type, ratingFrom, ratingTo, yearFrom, yearTo, page, genreId, countryId, cancellationToken);
+            totalSynced += count;
+            logger.LogInformation("Synced catalog page {Page}/{TotalPages}, +{Count} films.", page, totalPages, count);
+        }
+        return (totalSynced, totalPages);
+    }
+
+    /// <summary>
     /// Fetches season data for a series by Kinopoisk film ID from /api/v2.2/films/{id}/seasons.
     /// Returns seasons with episodes (synopsis, release dates, etc.).
     /// </summary>

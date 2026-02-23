@@ -11,9 +11,16 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
 {
     public string? Message { get; set; }
     public bool IsSuccess { get; set; }
+
+    /// <summary>Catalog sync: main endpoint GET /api/v2.2/films (order, type, rating, year, page).</summary>
+    public string CatalogOrder { get; set; } = "RATING";
+    public string CatalogType { get; set; } = "ALL";
+    public int CatalogPage { get; set; } = 1;
+    /// <summary>Total pages from API (max 20 for 400 items). 0 = unknown.</summary>
+    public int CatalogTotalPages { get; set; }
+
     public string SelectedCollectionType { get; set; } = KinopoiskCollectionType.Top250Movies;
     public int CollectionPage { get; set; } = 1;
-    /// <summary>Total pages for the selected collection (from API). 0 = unknown.</summary>
     public int CollectionTotalPages { get; set; }
     public IList<FeaturedPremiere> FeaturedPremieres { get; set; } = [];
     /// <summary>Premieres from API for the selected year/month (browse new coming films).</summary>
@@ -64,18 +71,81 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
         }
     }
 
-    public async Task<IActionResult> OnPostSyncKinopoiskAsync(CancellationToken cancellationToken)
+    /// <summary>Main sync: one page from GET /api/v2.2/films (order, type, rating, year, page).</summary>
+    public async Task<IActionResult> OnPostSyncCatalogAsync(string? order, string? type, int page, CancellationToken cancellationToken)
     {
+        var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
+        var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        var pageNum = page < 1 ? 1 : page;
         try
         {
-            var count = await kinopoiskService.SyncTrendingToDatabaseAsync(cancellationToken);
-            Message = $"Synced {count} movies from Kinopoisk TOP 250 (page 1).";
+            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, page: pageNum, cancellationToken: cancellationToken);
+            var count = await kinopoiskService.SaveOrUpdateMoviesAsync(result.Items, cancellationToken);
+            CatalogTotalPages = result.TotalPages;
+            CatalogOrder = orderVal;
+            CatalogType = typeVal;
+            CatalogPage = pageNum;
+            Message = CatalogTotalPages > 0
+                ? $"Synced {count} movies (page {pageNum} of {CatalogTotalPages})."
+                : $"Synced {count} movies (page {pageNum}).";
             IsSuccess = true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Kinopoisk sync failed");
-            Message = "Kinopoisk sync failed. Check logs and KinopoiskApiKey in appsettings.";
+            logger.LogError(ex, "Catalog sync failed");
+            Message = "Catalog sync failed. Check logs and KinopoiskApiKey.";
+            IsSuccess = false;
+        }
+        await LoadPageDataAsync(null, null, cancellationToken);
+        return Page();
+    }
+
+    /// <summary>Sync all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.).</summary>
+    public async Task<IActionResult> OnPostSyncAllCatalogAsync(string? order, string? type, CancellationToken cancellationToken)
+    {
+        var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
+        var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        try
+        {
+            var (totalSynced, totalPages) = await kinopoiskService.SyncAllFilmsByFiltersToDatabaseAsync(order: orderVal, type: typeVal, cancellationToken: cancellationToken);
+            CatalogOrder = orderVal;
+            CatalogType = typeVal;
+            CatalogPage = 1;
+            CatalogTotalPages = totalPages;
+            Message = $"Synced all {totalPages} page(s): {totalSynced} films saved/updated.";
+            IsSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Sync all catalog failed");
+            Message = "Sync all failed. Check logs and KinopoiskApiKey.";
+            IsSuccess = false;
+        }
+        await LoadPageDataAsync(null, null, cancellationToken);
+        return Page();
+    }
+
+    /// <summary>Fetches page 1 to get total pages for catalog (no sync).</summary>
+    public async Task<IActionResult> OnPostCheckCatalogPagesAsync(string? order, string? type, CancellationToken cancellationToken)
+    {
+        var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
+        var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        try
+        {
+            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, page: 1, cancellationToken: cancellationToken);
+            CatalogTotalPages = result.TotalPages;
+            CatalogOrder = orderVal;
+            CatalogType = typeVal;
+            CatalogPage = 1;
+            Message = result.TotalPages > 0
+                ? $"Catalog has {CatalogTotalPages} page(s). Up to 20 films per page, max 400 total."
+                : "Could not get page count.";
+            IsSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Check catalog pages failed");
+            Message = "Check failed. Check KinopoiskApiKey.";
             IsSuccess = false;
         }
         await LoadPageDataAsync(null, null, cancellationToken);

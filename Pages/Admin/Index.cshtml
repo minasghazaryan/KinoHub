@@ -17,64 +17,46 @@
 
     <div class="flex flex-col gap-6 lg:flex-row lg:gap-4">
         <div class="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-            <h2 class="text-sm font-semibold text-slate-200 mb-2">Kinopoisk API – Collections</h2>
-            <p class="text-sm text-slate-400 mb-4">Fetch films from a collection (type + page). Each page has up to 20 films. <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs">KinopoiskApiKey</code> in appsettings.</p>
-            <form method="post" asp-page-handler="SyncKinopoisk" class="mb-4">
-                <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Sync TOP 250 (page 1)</button>
-            </form>
-            <form method="post" asp-page-handler="CheckCollectionPages" class="inline-block mb-4">
-                <input type="hidden" name="collectionType" value="@Model.SelectedCollectionType" />
+            <h2 class="text-sm font-semibold text-slate-200 mb-2">Kinopoisk API – Catalog sync (main endpoint)</h2>
+            <p class="text-sm text-slate-400 mb-4">Sync films from <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs">/api/v2.2/films</code> (order=RATING, type=ALL, rating 0–10, year 1000–3000). Up to 20 per page, max 400 total. <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs">KinopoiskApiKey</code> in appsettings.</p>
+            <form method="post" asp-page-handler="CheckCatalogPages" class="inline-block mb-4">
+                <input type="hidden" name="order" value="@Model.CatalogOrder" />
+                <input type="hidden" name="type" value="@Model.CatalogType" />
                 <button type="submit" class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors">Check page count</button>
             </form>
-            <p class="text-xs text-slate-500 mb-3">@(Model.CollectionTotalPages > 0 ? $"This collection has {Model.CollectionTotalPages} page(s)." : "Click «Check page count» or sync to see total pages.")</p>
+            <p class="text-xs text-slate-500 mb-3">@(Model.CatalogTotalPages > 0 ? $"Catalog has {Model.CatalogTotalPages} page(s)." : "Click «Check page count» or sync to see total pages.")</p>
             <div class="flex flex-wrap items-end gap-3">
-                <form method="post" asp-page-handler="SyncKinopoiskCollection" class="flex flex-wrap items-end gap-3">
+                <form method="post" asp-page-handler="SyncCatalog" class="flex flex-wrap items-end gap-3">
                     <div>
-                        <label class="block text-xs text-slate-500 mb-1">Collection type</label>
-                        <select name="collectionType" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 min-w-[220px]">
-                            @foreach (var opt in KinopoiskCollectionType.All)
-                            {
-                                <option value="@opt.Value" selected="@(Model.SelectedCollectionType == opt.Value ? "selected" : null)">@opt.Label</option>
-                            }
+                        <label class="block text-xs text-slate-500 mb-1">Order</label>
+                        <select name="order" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 min-w-[140px]">
+                            <option value="RATING" selected="@(Model.CatalogOrder == "RATING")">По рейтингу</option>
+                            <option value="NUM_VOTE" selected="@(Model.CatalogOrder == "NUM_VOTE")">По голосам</option>
+                            <option value="YEAR" selected="@(Model.CatalogOrder == "YEAR")">По году</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Type</label>
+                        <select name="type" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 min-w-[140px]">
+                            <option value="ALL" selected="@(Model.CatalogType == "ALL")">Все</option>
+                            <option value="FILM" selected="@(Model.CatalogType == "FILM")">Фильмы</option>
+                            <option value="TV_SERIES" selected="@(Model.CatalogType == "TV_SERIES")">Сериалы</option>
                         </select>
                     </div>
                     <div class="flex items-end gap-1">
                         <div>
                             <label class="block text-xs text-slate-500 mb-1">Page</label>
-                            <input type="number" name="page" value="@Model.CollectionPage" min="1" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 w-20" />
+                            <input type="number" name="page" value="@Model.CatalogPage" min="1" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 w-20" />
                         </div>
-                        <span class="pb-2 text-slate-500 text-sm">of @(Model.CollectionTotalPages > 0 ? Model.CollectionTotalPages.ToString() : "?")</span>
+                        <span class="pb-2 text-slate-500 text-sm">of @(Model.CatalogTotalPages > 0 ? Model.CatalogTotalPages.ToString() : "?")</span>
                     </div>
-                    <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Sync collection</button>
+                    <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500 transition-colors">Sync page</button>
                 </form>
-                <form method="post" asp-page-handler="SyncAllCollection" class="flex flex-wrap items-end gap-3">
-                    <div>
-                        <label class="block text-xs text-slate-500 mb-1">Collection type (for Sync all)</label>
-                        <select name="collectionType" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 min-w-[220px]">
-                            @foreach (var opt in KinopoiskCollectionType.All)
-                            {
-                                <option value="@opt.Value" selected="@(Model.SelectedCollectionType == opt.Value ? "selected" : null)">@opt.Label</option>
-                            }
-                        </select>
-                    </div>
-                    <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors" onclick="return confirm('Sync all pages of this collection? This may take a while.');">Sync all</button>
+                <form method="post" asp-page-handler="SyncAllCatalog" class="flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="order" value="@Model.CatalogOrder" />
+                    <input type="hidden" name="type" value="@Model.CatalogType" />
+                    <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors" onclick="return confirm('Sync all pages (up to 20)? This may take a while.');">Sync all</button>
                 </form>
-                @if (Model.CollectionTotalPages > 0 && Model.CollectionPage > 1)
-                {
-                    <form method="post" asp-page-handler="SyncKinopoiskCollection" class="inline-flex">
-                        <input type="hidden" name="collectionType" value="@Model.SelectedCollectionType" />
-                        <input type="hidden" name="page" value="@(Model.CollectionPage - 1)" />
-                        <button type="submit" class="rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm text-slate-300 hover:bg-slate-700 transition-colors" title="Sync previous page">← Prev</button>
-                    </form>
-                }
-                @if (Model.CollectionTotalPages > 0 && Model.CollectionPage < Model.CollectionTotalPages)
-                {
-                    <form method="post" asp-page-handler="SyncKinopoiskCollection" class="inline-flex">
-                        <input type="hidden" name="collectionType" value="@Model.SelectedCollectionType" />
-                        <input type="hidden" name="page" value="@(Model.CollectionPage + 1)" />
-                        <button type="submit" class="rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm text-slate-300 hover:bg-slate-700 transition-colors" title="Sync next page">Next →</button>
-                    </form>
-                }
             </div>
         </div>
 
