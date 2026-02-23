@@ -1,4 +1,4 @@
-name: Deploy to Server via SSH (Password)
+name: Deploy Same Repo to Server
 
 on:
   push:
@@ -10,7 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over SSH
+      # 1️⃣ Checkout current repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Copy project files to server
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "."
+          target: "/var/www/kino"
+          rm: true
+
+      # 3️⃣ Run docker compose on server
+      - name: Run Docker Compose
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -19,26 +36,9 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             set -e
+            cd /var/www/kino
 
-            APP_DIR="/var/www/myapp"
-
-            echo "Creating app directory if not exists..."
-            mkdir -p $APP_DIR
-            cd $APP_DIR
-
-            if [ ! -d ".git" ]; then
-              echo "Cloning repository..."
-              git clone ${{ secrets.REPO_URL }} .
-            else
-              echo "Pulling latest changes..."
-              git fetch --all
-              git reset --hard origin/main
-            fi
-
-            echo "Stopping old containers..."
             docker compose down || true
-
-            echo "Building and starting containers..."
             docker compose up -d --build
 
-            echo "Deployment finished successfully."
+            echo "Deployment completed."
