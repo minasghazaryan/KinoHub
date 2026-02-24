@@ -61,9 +61,12 @@ public class KinopoiskService(
         int? countryId = null,
         CancellationToken cancellationToken = default)
     {
+        // API accepts RATING, NUM_VOTE, YEAR; map YEAR_ASC/YEAR_DESC to YEAR
+        var orderUpper = order?.ToUpperInvariant();
+        var apiOrder = (orderUpper == "YEAR_ASC" || orderUpper == "YEAR_DESC") ? "YEAR" : (order ?? "RATING");
         var query = new List<string>
         {
-            $"order={Uri.EscapeDataString(order)}",
+            $"order={Uri.EscapeDataString(apiOrder)}",
             $"type={Uri.EscapeDataString(type)}",
             $"ratingFrom={ratingFrom}",
             $"ratingTo={ratingTo}",
@@ -130,9 +133,15 @@ public class KinopoiskService(
         if (year.HasValue)
             query = query.Where(m => m.ReleaseYear != null && m.ReleaseYear == year.Value.ToString());
 
-        query = order?.ToUpperInvariant() == "YEAR" || order == "NUM_VOTE"
-            ? query.OrderByDescending(m => m.ReleaseYear).ThenByDescending(m => m.Rating ?? 0)
-            : query.OrderByDescending(m => m.Rating ?? 0).ThenByDescending(m => m.Id);
+        var orderUpper = order?.ToUpperInvariant();
+        if (orderUpper == "YEAR_DESC" || orderUpper == "YEAR")
+            query = query.OrderByDescending(m => m.ReleaseYear).ThenByDescending(m => m.Rating ?? 0);
+        else if (orderUpper == "YEAR_ASC")
+            query = query.OrderBy(m => m.ReleaseYear).ThenByDescending(m => m.Rating ?? 0);
+        else if (orderUpper == "NUM_VOTE")
+            query = query.OrderByDescending(m => m.ReleaseYear).ThenByDescending(m => m.Rating ?? 0);
+        else
+            query = query.OrderByDescending(m => m.Rating ?? 0).ThenByDescending(m => m.Id);
 
         var total = await query.CountAsync(cancellationToken);
         var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)CatalogPageSize);

@@ -239,16 +239,16 @@
             }
         </aside>
         <div class="min-w-0 max-w-4xl flex-1 ml-6" id="main-content">
-            <form method="get" class="mb-4 flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+            <form id="catalog-filters-form" method="get" class="mb-4 flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
                 <input type="hidden" name="filtersPage" value="1" />
+                @if (Model.Collection != null) { <input type="hidden" name="collection" value="@Model.Collection" /> }
                 @if (Model.CountryId.HasValue) { <input type="hidden" name="countryId" value="@Model.CountryId" /> }
-                @if (Model.GenreId.HasValue) { <input type="hidden" name="genreId" value="@Model.GenreId" /> }
-                @if (Model.Year.HasValue) { <input type="hidden" name="year" value="@Model.Year" /> }
                 <span class="text-sm text-slate-400 shrink-0">Сортировка:</span>
                 <select name="order" class="rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none shrink-0">
                     <option value="RATING" selected="@(Model.Order == "RATING")">по рейтингу</option>
                     <option value="NUM_VOTE" selected="@(Model.Order == "NUM_VOTE")">по голосам</option>
-                    <option value="YEAR" selected="@(Model.Order == "YEAR")">по году</option>
+                    <option value="YEAR_DESC" selected="@(Model.Order == "YEAR_DESC")">по году (сначала новые)</option>
+                    <option value="YEAR_ASC" selected="@(Model.Order == "YEAR_ASC")">по году (сначала старые)</option>
                 </select>
                 <select name="type" class="rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none shrink-0">
                     <option value="ALL" selected="@(Model.Type == "ALL")">Все</option>
@@ -278,8 +278,16 @@
                         <option value="@g.Id" selected="@(Model.GenreId == g.Id)">@Capitalize(g.Name)</option>
                     }
                 </select>
-                <button type="submit" class="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500 shrink-0">Показать</button>
             </form>
+            <script>
+                (function () {
+                    var form = document.getElementById('catalog-filters-form');
+                    if (!form) return;
+                    form.querySelectorAll('select').forEach(function (sel) {
+                        sel.addEventListener('change', function () { form.submit(); });
+                    });
+                })();
+            </script>
 
             @if (Model.SearchResult != null)
             {

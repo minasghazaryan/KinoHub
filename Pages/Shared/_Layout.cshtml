@@ -20,20 +20,29 @@
     <link rel="icon" href="~/kinovibe_favicon_32x32.ico" type="image/x-icon" />
     <title>@ViewData["Title"] - KinoVibe</title>
     <link rel="stylesheet" href="~/css/tailwind.css" />
-    
-<!-- Yandex.Metrika counter -->
-<script type="text/javascript">
-    (function(m,e,t,r,i,k,a){
-        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-        m[i].l=1*new Date();
-        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106991484', 'ym');
+    <style>
+        /* Branded scrollbars: slate track + amber thumb (years, genres, and all scrollable areas) */
+        /* Firefox */
+        select, [class*="overflow-auto"], [class*="overflow-y-auto"], .overflow-x-auto { scrollbar-width: thin; scrollbar-color: #f59e0b #1e293b; }
+        /* WebKit (Chrome, Edge, Safari) */
+        select::-webkit-scrollbar, [class*="overflow-auto"]::-webkit-scrollbar, [class*="overflow-y-auto"]::-webkit-scrollbar, .overflow-x-auto::-webkit-scrollbar { width: 8px; height: 8px; }
+        select::-webkit-scrollbar-track, [class*="overflow-auto"]::-webkit-scrollbar-track, [class*="overflow-y-auto"]::-webkit-scrollbar-track, .overflow-x-auto::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        select::-webkit-scrollbar-thumb, [class*="overflow-auto"]::-webkit-scrollbar-thumb, [class*="overflow-y-auto"]::-webkit-scrollbar-thumb, .overflow-x-auto::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 4px; }
+        select::-webkit-scrollbar-thumb:hover, [class*="overflow-auto"]::-webkit-scrollbar-thumb:hover, [class*="overflow-y-auto"]::-webkit-scrollbar-thumb:hover, .overflow-x-auto::-webkit-scrollbar-thumb:hover { background: #d97706; }
+    </style>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106991484', 'ym');
 
-    ym(106991484, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/106991484" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- /Yandex.Metrika counter -->
+        ym(106991484, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/106991484" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
 </head>
 <body class="bg-slate-950 text-slate-100">
     @if (vibixUnionEnabled)
