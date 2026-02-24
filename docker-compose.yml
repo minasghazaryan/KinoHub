@@ -15,20 +15,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=KinoHub_Sql_Secret_123
-    ports:
-      - "1433:1433"
-    volumes:
-      - sqlserver-data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "KinoHub_Sql_Secret_123", "-Q", "SELECT 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+ sqlserver:
+  image: mcr.microsoft.com/mssql/server:2022-latest
+  environment:
+    - ACCEPT_EULA=Y
+    - MSSQL_SA_PASSWORD=KinoHub_Sql_Secret_123
+  ports:
+    - "1433:1433"
+  volumes:
+    - sqlserver-data:/var/opt/mssql
+  healthcheck:
+    test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
 
 volumes:
   sqlserver-data:
