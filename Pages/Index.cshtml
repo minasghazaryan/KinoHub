@@ -144,7 +144,7 @@
                                 }
                                 @foreach (var pair in countryNav)
                                 {
-                                    var match = Model.Countries.FirstOrDefault(c => c.Name != null && c.Name.IndexOf(pair.Item2, StringComparison.OrdinalIgnoreCase) >= 0);
+                                    var match = Model.Countries.FirstOrDefault(c => c.Name != null && string.Equals(c.Name, pair.Item2, StringComparison.OrdinalIgnoreCase));
                                     @if (match != null)
                                     {
                                         <li><a asp-page="/Index" asp-route-countryId="@match.Id" class="text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-amber-400 hover:decoration-amber-400 @(Model.CountryId == match.Id ? "text-amber-400 font-medium" : "")">@pair.Item1</a></li>

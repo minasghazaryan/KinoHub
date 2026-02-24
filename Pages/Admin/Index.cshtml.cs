@@ -115,7 +115,12 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
         return Page();
     }
 
-    /// <summary>Sync all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.).</summary>
+    /// <summary>
+    /// Syncs all pages for <b>all genres</b> from GET /api/v2.2/films.
+    /// API has a hard limit of 400 items (20 pages) per filter set, so we loop genres
+    /// and page through each one separately to cover more films overall.
+    /// Frontend is expected to provide yearFrom/yearTo; order/type follow current catalog settings.
+    /// </summary>
     public async Task<IActionResult> OnPostSyncAllCatalogAsync(string? order, string? type, int? yearFrom, int? yearTo, int? genreId, CancellationToken cancellationToken)
     {
         var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
@@ -123,26 +128,60 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
         var yearFromVal = yearFrom ?? 1900;
         var yearToVal = yearTo ?? 2030;
         if (yearFromVal > yearToVal) (yearFromVal, yearToVal) = (yearToVal, yearFromVal);
-        var genreIdVal = genreId is > 0 ? genreId : null;
+
         try
         {
-            var (totalSynced, totalPages) = await kinopoiskService.SyncAllFilmsByFiltersToDatabaseAsync(order: orderVal, type: typeVal, yearFrom: yearFromVal, yearTo: yearToVal, genreId: genreIdVal, cancellationToken: cancellationToken);
+            // Load all genres from DB; each genre will be synced separately to bypass 400-items-per-filter limit.
+            var genres = await dbContext.Genres
+                .AsNoTracking()
+                .OrderBy(g => g.Id)
+                .ToListAsync(cancellationToken);
+
+            if (genres.Count == 0)
+            {
+                Message = "No genres found in database. Seed genres before running full catalog sync.";
+                IsSuccess = false;
+                await LoadPageDataAsync(null, null, cancellationToken);
+                return Page();
+            }
+
+            var totalSynced = 0;
+            var totalPages = 0;
+
+            foreach (var g in genres)
+            {
+                var (genreSynced, genrePages) = await kinopoiskService.SyncAllFilmsByFiltersToDatabaseAsync(
+                    order: orderVal,
+                    type: typeVal,
+                    yearFrom: yearFromVal,
+                    yearTo: yearToVal,
+                    genreId: g.Id,
+                    cancellationToken: cancellationToken);
+
+                totalSynced += genreSynced;
+                totalPages += genrePages;
+
+                logger.LogInformation("Synced catalog for genre {GenreId} ({GenreName}), pages: {Pages}, +{Count} films.",
+                    g.Id, g.Name, genrePages, genreSynced);
+            }
+
             CatalogOrder = orderVal;
             CatalogType = typeVal;
             CatalogYearFrom = yearFromVal;
             CatalogYearTo = yearToVal;
-            CatalogGenreId = genreIdVal;
+            CatalogGenreId = null; // 'all genres' were processed
             CatalogPage = 1;
             CatalogTotalPages = totalPages;
-            Message = $"Synced all {totalPages} page(s): {totalSynced} films saved/updated.";
+            Message = $"Synced all genres for {yearFromVal}–{yearToVal}: {totalSynced} films saved/updated across {totalPages} page(s).";
             IsSuccess = true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Sync all catalog failed");
-            Message = "Sync all failed. Check logs and KinopoiskApiKey.";
+            logger.LogError(ex, "Sync all catalog (all genres) failed");
+            Message = "Sync all catalog (all genres) failed. Check logs and KinopoiskApiKey.";
             IsSuccess = false;
         }
+
         await LoadPageDataAsync(null, null, cancellationToken);
         return Page();
     }

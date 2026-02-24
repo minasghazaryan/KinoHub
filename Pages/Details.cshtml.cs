@@ -89,7 +89,9 @@ public class DetailsModel(KinopoiskService kinopoiskService, VibixService vibixS
         }
         catch (KinopoiskQuotaExceededException)
         {
-            ErrorMessage = "Превышена квота API Кинопоиска. Проверьте ключ и лимиты на https://kinopoiskapiunofficial.tech";
+            // Hide provider-specific quota details from end users, but log on the server.
+            logger.LogWarning("Kinopoisk API quota exceeded while loading film details.");
+            ErrorMessage = "Сервис временно недоступен. Попробуйте ещё раз позже.";
         }
         catch (Exception ex)
         {
