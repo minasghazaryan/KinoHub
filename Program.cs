@@ -102,7 +102,10 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<KinoContext>();
     var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-    await context.Database.MigrateAsync();
+    if (!(await context.Database.CanConnectAsync()))
+    {
+        await context.Database.MigrateAsync();
+    }
     await GenresCountriesSeeder.SeedAsync(context, env.ContentRootPath);
 }
 
