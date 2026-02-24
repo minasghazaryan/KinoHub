@@ -547,6 +547,18 @@ public class KinopoiskService(
         return await response.Content.ReadFromJsonAsync<KinopoiskSimilarsResponseDto>(options, cancellationToken);
     }
 
+    /// <summary>Fetches related films: GET /api/v2.2/films/{id}/relations</summary>
+    public async Task<KinopoiskRelationsResponseDto?> GetRelationsAsync(int kpId, CancellationToken cancellationToken = default)
+    {
+        var client = httpClientFactory.CreateClient("Kinopoisk");
+        var url = $"{BaseAddress}{FilmsPath}/{kpId}/relations";
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return await response.Content.ReadFromJsonAsync<KinopoiskRelationsResponseDto>(options, cancellationToken);
+    }
+
     /// <summary>Fetches viewer reviews: GET /api/v2.2/films/{id}/reviews?page={page}&amp;order={order}</summary>
     public async Task<KinopoiskReviewsResponseDto?> GetReviewsAsync(int kpId, int page = 1, string order = "DATE_DESC", CancellationToken cancellationToken = default)
     {

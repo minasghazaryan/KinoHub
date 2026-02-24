@@ -1,6 +1,7 @@
 using KinoHub.Web.Data;
 using KinoHub.Web.Models;
 using KinoHub.Web.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
@@ -161,6 +162,27 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
                     FiltersResult = new FilmsByFiltersResult([], 0, 0, FiltersPage);
                 }
             }
+        }
+    }
+
+    /// <summary>Returns first 5 search suggestions as JSON for the header autocomplete (handler=SearchSuggestions).</summary>
+    public async Task<IActionResult> OnGetSearchSuggestionsAsync(string? q, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return new JsonResult(Array.Empty<object>());
+        try
+        {
+            var result = await kinopoiskService.SearchByKeywordAsync(q.Trim(), 1, cancellationToken);
+            var suggestions = result.Films.Take(5).Select(f =>
+            {
+                var title = !string.IsNullOrWhiteSpace(f.NameRu) ? f.NameRu : (f.NameEn ?? "");
+                return new { id = f.FilmId, title, year = f.Year };
+            }).ToList();
+            return new JsonResult(suggestions);
+        }
+        catch
+        {
+            return new JsonResult(Array.Empty<object>());
         }
     }
 }

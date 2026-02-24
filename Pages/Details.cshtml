@@ -261,7 +261,7 @@
             </div>
         }
 
-        @* 1. Похожие фильмы *@
+        @* 1. Похожие фильмы (Similars) *@
         @if (Model.Similars != null && Model.Similars.Items != null && Model.Similars.Items.Count > 0)
         {
             <div class="mt-8 border-t border-slate-800 pt-8">
@@ -288,7 +288,38 @@
             </div>
         }
 
-        @* 2. Рецензии зрителей — top 10 + see more; each card 2–3 lines + read more *@
+        @* 2. Связанные фильмы (Relations) *@
+        @if (Model.Relations != null && Model.Relations.Items != null && Model.Relations.Items.Count > 0)
+        {
+            <div class="mt-8 border-t border-slate-800 pt-8">
+                <h2 class="text-xl font-semibold text-slate-200">Связанные фильмы (@Model.Relations.Items.Count)</h2>
+                <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    @foreach (var rel in Model.Relations.Items.Take(15))
+                    {
+                        <a asp-page="/Details" asp-route-id="@rel.KinopoiskId" class="group flex flex-col">
+                            <div class="aspect-[2/3] overflow-hidden rounded-xl bg-slate-800 shadow-md transition group-hover:ring-2 group-hover:ring-amber-500/50">
+                                @if (!string.IsNullOrEmpty(rel.PosterUrlPreview ?? rel.PosterUrl))
+                                {
+                                    <img src="@(rel.PosterUrl ?? rel.PosterUrlPreview)" alt="" class="h-full w-full object-cover transition group-hover:scale-105" />
+                                }
+                                else
+                                {
+                                    <div class="flex h-full w-full items-center justify-center text-slate-500">Нет постера</div>
+                                }
+                            </div>
+                            <span class="mt-2 line-clamp-2 text-sm font-medium text-slate-200 group-hover:text-amber-400">@(rel.NameRu ?? rel.NameEn ?? rel.NameOriginal ?? "—")</span>
+                            @if (!string.IsNullOrEmpty(rel.RelationType))
+                            {
+                                <span class="mt-0.5 text-xs text-slate-500">@rel.RelationType</span>
+                            }
+                        </a>
+                    }
+                </div>
+                @if (Model.Relations.Items.Count > 15) { <p class="mt-2 text-sm text-slate-500">Показано 15 из @Model.Relations.Total</p> }
+            </div>
+        }
+
+        @* 3. Рецензии зрителей — top 10 + see more; each card 2–3 lines + read more *@
         @if (Model.Reviews != null && Model.Reviews.Items != null && Model.Reviews.Items.Count > 0)
         {
             var topReviews = Model.Reviews.Items.Take(10).ToList();

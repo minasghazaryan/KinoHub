@@ -615,6 +615,41 @@ public class KinopoiskSimilarsResponseDto
     public List<KinopoiskSimilarItemDto> Items { get; set; } = [];
 }
 
+/// <summary>Related film from GET /api/v2.2/films/{id}/relations</summary>
+public class KinopoiskRelationItemDto
+{
+    [JsonPropertyName("kinopoiskId")]
+    public int KinopoiskId { get; set; }
+
+    [JsonPropertyName("nameRu")]
+    public string? NameRu { get; set; }
+
+    [JsonPropertyName("nameEn")]
+    public string? NameEn { get; set; }
+
+    [JsonPropertyName("nameOriginal")]
+    public string? NameOriginal { get; set; }
+
+    [JsonPropertyName("posterUrl")]
+    public string? PosterUrl { get; set; }
+
+    [JsonPropertyName("posterUrlPreview")]
+    public string? PosterUrlPreview { get; set; }
+
+    [JsonPropertyName("relationType")]
+    public string? RelationType { get; set; }
+}
+
+/// <summary>Response from GET /api/v2.2/films/{id}/relations</summary>
+public class KinopoiskRelationsResponseDto
+{
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<KinopoiskRelationItemDto> Items { get; set; } = [];
+}
+
 /// <summary>Single review from GET /api/v2.2/films/{id}/reviews</summary>
 public class KinopoiskReviewItemDto
 {

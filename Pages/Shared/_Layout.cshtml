@@ -19,7 +19,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="~/kinovibe_favicon_32x32.ico" type="image/x-icon" />
     <title>@ViewData["Title"] - KinoVibe</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="~/css/tailwind.css" />
 </head>
 <body class="bg-slate-950 text-slate-100">
     @if (vibixUnionEnabled)
@@ -31,16 +31,65 @@
         <script type="text/javascript" src="https://v-js-menu.run/public/lib.en.min.js"></script>
     }
     <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-            <a class="text-xl font-bold tracking-tight text-amber-400" asp-page="/Index">KINOVIBE</a>
-            <div class="flex flex-1 items-center justify-end gap-3 sm:max-w-md">
-                <form method="get" asp-page="/Index" class="flex flex-1 gap-1" role="search">
-                    <input type="search" name="q" value="@ViewData["SearchQuery"]" placeholder="Поиск..." class="w-full rounded border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:outline-none" />
-                    <button type="submit" class="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">OK</button>
+        <div class="mx-auto flex max-w-7xl items-center px-4 py-3">
+            <div class="min-w-0 flex-1">
+                <a class="text-xl font-bold tracking-tight text-amber-400" asp-page="/Index">KINOVIBE</a>
+            </div>
+            <div class="shrink-0">
+                <form id="header-search-form" method="get" asp-page="/Index" class="flex w-full gap-2" style="width:450px" role="search">
+                    <div class="relative min-w-0 flex-1">
+                        <input id="header-search-input" type="search" name="q" value="@ViewData["SearchQuery"]" placeholder="Поиск..." class="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:outline-none" autocomplete="off" />
+                        <div id="header-search-dropdown" class="absolute left-0 right-0 top-full z-50 mt-1 hidden max-h-64 overflow-auto rounded-lg border border-slate-700 shadow-xl" style="background-color: #0f172a;" role="listbox"></div>
+                    </div>
+                    <button type="submit" class="shrink-0 rounded bg-amber-600 px-2.5 py-1 text-sm font-medium text-slate-900 hover:bg-amber-500">OK</button>
                 </form>
             </div>
-            <a href="#" class="whitespace-nowrap text-sm text-slate-300 hover:text-amber-300">Вход / Регистрация</a>
+            <div class="min-w-0 flex-1"></div>
         </div>
+        <script>
+            (function () {
+                var form = document.getElementById('header-search-form');
+                var input = document.getElementById('header-search-input');
+                var dropdown = document.getElementById('header-search-dropdown');
+                if (!form || !input || !dropdown) return;
+                var debounceTimer;
+                var minChars = 2;
+                var hideTimer;
+                function hideDropdown() { hideTimer = setTimeout(function () { dropdown.classList.add('hidden'); }, 150); }
+                function showDropdown() { clearTimeout(hideTimer); dropdown.classList.remove('hidden'); }
+                function buildSuggestionsUrl(q) {
+                    var url = new URL(form.action || '/Index', window.location.origin);
+                    url.searchParams.set('handler', 'SearchSuggestions');
+                    url.searchParams.set('q', q);
+                    return url.toString();
+                }
+                function renderSuggestions(items) {
+                    dropdown.innerHTML = '';
+                    if (!items || items.length === 0) { dropdown.classList.add('hidden'); return; }
+                    items.forEach(function (item) {
+                        var a = document.createElement('a');
+                        a.href = '/Details?id=' + encodeURIComponent(item.id);
+                        a.className = 'block border-b border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 first:rounded-t-lg last:border-b-0 last:rounded-b-lg';
+                        a.textContent = (item.title || '') + (item.year ? ' (' + item.year + ')' : '');
+                        a.setAttribute('role', 'option');
+                        dropdown.appendChild(a);
+                    });
+                    showDropdown();
+                }
+                input.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    var val = (input.value || '').trim();
+                    if (val.length < minChars) { dropdown.classList.add('hidden'); dropdown.innerHTML = ''; return; }
+                    debounceTimer = setTimeout(function () {
+                        fetch(buildSuggestionsUrl(val)).then(function (r) { return r.json(); }).then(renderSuggestions).catch(function () { renderSuggestions([]); });
+                    }, 300);
+                });
+                input.addEventListener('focus', function () { if (dropdown.children.length > 0) showDropdown(); });
+                input.addEventListener('blur', hideDropdown);
+                dropdown.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                form.addEventListener('submit', function () { dropdown.classList.add('hidden'); });
+            })();
+        </script>
         <nav class="border-t border-slate-800">
             @{
                 var navCollection = ViewData["Collection"] as string;

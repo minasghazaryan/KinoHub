@@ -20,6 +20,7 @@ public class DetailsModel(KinopoiskService kinopoiskService, VibixService vibixS
     public KinopoiskBoxOfficeResponseDto? BoxOffice { get; set; }
     public KinopoiskAwardsResponseDto? Awards { get; set; }
     public KinopoiskSimilarsResponseDto? Similars { get; set; }
+    public KinopoiskRelationsResponseDto? Relations { get; set; }
     public KinopoiskReviewsResponseDto? Reviews { get; set; }
     public bool IsSeries { get; set; }
     public string? ErrorMessage { get; set; }
@@ -70,6 +71,9 @@ public class DetailsModel(KinopoiskService kinopoiskService, VibixService vibixS
 
             // Similar films
             try { Similars = await kinopoiskService.GetSimilarsAsync(id.Value, cancellationToken); } catch { }
+
+            // Related films (sequels, prequels, etc.)
+            try { Relations = await kinopoiskService.GetRelationsAsync(id.Value, cancellationToken); } catch { }
 
             // Reviews (page 1, DATE_DESC)
             try { Reviews = await kinopoiskService.GetReviewsAsync(id.Value, page: 1, order: "DATE_DESC", cancellationToken); } catch { }

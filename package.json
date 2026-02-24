@@ -1,0 +1,11 @@
+{
+  "name": "kinohub-web",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./Styles/tailwind-input.css -o ./wwwroot/css/tailwind.css",
+    "watch:css": "tailwindcss -i ./Styles/tailwind-input.css -o ./wwwroot/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
