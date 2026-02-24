@@ -15,9 +15,15 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     /// <summary>Catalog sync: main endpoint GET /api/v2.2/films (order, type, rating, year, page).</summary>
     public string CatalogOrder { get; set; } = "RATING";
     public string CatalogType { get; set; } = "ALL";
+    public int CatalogYearFrom { get; set; } = 1900;
+    public int CatalogYearTo { get; set; } = 2030;
+    /// <summary>Genre filter: null = all. Kinopoisk genre ID (matches Genres table Id).</summary>
+    public int? CatalogGenreId { get; set; }
     public int CatalogPage { get; set; } = 1;
     /// <summary>Total pages from API (max 20 for 400 items). 0 = unknown.</summary>
     public int CatalogTotalPages { get; set; }
+    /// <summary>Genres for catalog filter dropdown (from DB, seeded from Kinopoisk).</summary>
+    public IList<Genre> CatalogGenres { get; set; } = [];
 
     public string SelectedCollectionType { get; set; } = KinopoiskCollectionType.Top250Movies;
     public int CollectionPage { get; set; } = 1;
@@ -58,6 +64,8 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
             .ToListAsync(cancellationToken);
         CarouselKinopoiskIds = FeaturedCarousels.Select(f => f.KinopoiskId).ToHashSet();
 
+        CatalogGenres = await dbContext.Genres.AsNoTracking().OrderBy(g => g.Name).ToListAsync(cancellationToken);
+
         var monthStr = MonthNames[PremieresMonth - 1];
         try
         {
@@ -72,18 +80,25 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     }
 
     /// <summary>Main sync: one page from GET /api/v2.2/films (order, type, rating, year, page).</summary>
-    public async Task<IActionResult> OnPostSyncCatalogAsync(string? order, string? type, int page, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostSyncCatalogAsync(string? order, string? type, int? yearFrom, int? yearTo, int? genreId, int page, CancellationToken cancellationToken)
     {
         var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
         var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        var yearFromVal = yearFrom ?? 1900;
+        var yearToVal = yearTo ?? 2030;
+        if (yearFromVal > yearToVal) (yearFromVal, yearToVal) = (yearToVal, yearFromVal);
+        var genreIdVal = genreId is > 0 ? genreId : null;
         var pageNum = page < 1 ? 1 : page;
         try
         {
-            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, page: pageNum, cancellationToken: cancellationToken);
+            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, yearFrom: yearFromVal, yearTo: yearToVal, page: pageNum, genreId: genreIdVal, cancellationToken: cancellationToken);
             var count = await kinopoiskService.SaveOrUpdateMoviesAsync(result.Items, cancellationToken);
             CatalogTotalPages = result.TotalPages;
             CatalogOrder = orderVal;
             CatalogType = typeVal;
+            CatalogYearFrom = yearFromVal;
+            CatalogYearTo = yearToVal;
+            CatalogGenreId = genreIdVal;
             CatalogPage = pageNum;
             Message = CatalogTotalPages > 0
                 ? $"Synced {count} movies (page {pageNum} of {CatalogTotalPages})."
@@ -101,15 +116,22 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     }
 
     /// <summary>Sync all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.).</summary>
-    public async Task<IActionResult> OnPostSyncAllCatalogAsync(string? order, string? type, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostSyncAllCatalogAsync(string? order, string? type, int? yearFrom, int? yearTo, int? genreId, CancellationToken cancellationToken)
     {
         var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
         var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        var yearFromVal = yearFrom ?? 1900;
+        var yearToVal = yearTo ?? 2030;
+        if (yearFromVal > yearToVal) (yearFromVal, yearToVal) = (yearToVal, yearFromVal);
+        var genreIdVal = genreId is > 0 ? genreId : null;
         try
         {
-            var (totalSynced, totalPages) = await kinopoiskService.SyncAllFilmsByFiltersToDatabaseAsync(order: orderVal, type: typeVal, cancellationToken: cancellationToken);
+            var (totalSynced, totalPages) = await kinopoiskService.SyncAllFilmsByFiltersToDatabaseAsync(order: orderVal, type: typeVal, yearFrom: yearFromVal, yearTo: yearToVal, genreId: genreIdVal, cancellationToken: cancellationToken);
             CatalogOrder = orderVal;
             CatalogType = typeVal;
+            CatalogYearFrom = yearFromVal;
+            CatalogYearTo = yearToVal;
+            CatalogGenreId = genreIdVal;
             CatalogPage = 1;
             CatalogTotalPages = totalPages;
             Message = $"Synced all {totalPages} page(s): {totalSynced} films saved/updated.";
@@ -126,16 +148,23 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     }
 
     /// <summary>Fetches page 1 to get total pages for catalog (no sync).</summary>
-    public async Task<IActionResult> OnPostCheckCatalogPagesAsync(string? order, string? type, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostCheckCatalogPagesAsync(string? order, string? type, int? yearFrom, int? yearTo, int? genreId, CancellationToken cancellationToken)
     {
         var orderVal = string.IsNullOrWhiteSpace(order) ? "RATING" : order.Trim();
         var typeVal = string.IsNullOrWhiteSpace(type) ? "ALL" : type.Trim();
+        var yearFromVal = yearFrom ?? 1900;
+        var yearToVal = yearTo ?? 2030;
+        if (yearFromVal > yearToVal) (yearFromVal, yearToVal) = (yearToVal, yearFromVal);
+        var genreIdVal = genreId is > 0 ? genreId : null;
         try
         {
-            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, page: 1, cancellationToken: cancellationToken);
+            var result = await kinopoiskService.GetFilmsByFiltersAsync(orderVal, typeVal, yearFrom: yearFromVal, yearTo: yearToVal, page: 1, genreId: genreIdVal, cancellationToken: cancellationToken);
             CatalogTotalPages = result.TotalPages;
             CatalogOrder = orderVal;
             CatalogType = typeVal;
+            CatalogYearFrom = yearFromVal;
+            CatalogYearTo = yearToVal;
+            CatalogGenreId = genreIdVal;
             CatalogPage = 1;
             Message = result.TotalPages > 0
                 ? $"Catalog has {CatalogTotalPages} page(s). Up to 20 films per page, max 400 total."
@@ -337,6 +366,8 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
             .OrderBy(f => f.DisplayOrder)
             .ToListAsync(cancellationToken);
         CarouselKinopoiskIds = FeaturedCarousels.Select(f => f.KinopoiskId).ToHashSet();
+
+        CatalogGenres = await dbContext.Genres.AsNoTracking().OrderBy(g => g.Name).ToListAsync(cancellationToken);
 
         var monthStr = MonthNames[PremieresMonth - 1];
         try
