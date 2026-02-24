@@ -12,8 +12,7 @@ services:
       - Vibix__PublisherId=${Vibix__PublisherId:-}
     depends_on:
       sqlserver:
-        condition: service_healthy
-    restart: unless-stopped
+            restart: unless-stopped
 
  sqlserver:
   image: mcr.microsoft.com/mssql/server:2022-latest
@@ -24,11 +23,5 @@ services:
     - "1433:1433"
   volumes:
     - sqlserver-data:/var/opt/mssql
-  healthcheck:
-    test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
-    interval: 10s
-    timeout: 5s
-    retries: 10
-
-volumes:
+ volumes:
   sqlserver-data:
