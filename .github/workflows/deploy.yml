@@ -38,7 +38,12 @@ jobs:
           script: |
             set -e
             cd /var/www/kino
-
+            # Create .env file with secrets
+            cat > .env << EOF
+            KinopoiskApiKey=${{ secrets.KinopoiskApiKey }}
+            Vibix__BearerToken=${{ secrets.Vibix__BearerToken }}
+            Vibix__PublisherId=${{ secrets.Vibix__PublisherId }}
+            EOF
             docker compose down || true
             docker compose up -d --build
 
