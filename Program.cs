@@ -32,7 +32,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(o =>
+{
+    // Admin is served at /manage instead of /Admin (separate URL, not in nav)
+    o.Conventions.AddFolderRouteModelConvention("/Admin", model =>
+    {
+        foreach (var selector in model.Selectors)
+        {
+            if (selector.AttributeRouteModel?.Template != null)
+                selector.AttributeRouteModel.Template = selector.AttributeRouteModel.Template.Replace("Admin", "manage");
+        }
+    });
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IApiCacheService, ApiCacheService>();
 

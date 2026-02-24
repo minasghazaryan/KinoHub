@@ -5,6 +5,8 @@ services:
     build: .
     expose:
       - "8080"
+    volumes:
+      - ./logs:/app/logs 
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Server=sqlserver;Database=KinoHubDb;User Id=sa;Password=KinoHub_Sql_Secret_123;TrustServerCertificate=True;MultipleActiveResultSets=true;
