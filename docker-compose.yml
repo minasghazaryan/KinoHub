@@ -13,6 +13,7 @@ services:
       - Vibix__PublisherId=${Vibix__PublisherId:-}
     depends_on:
       - sqlserver
+          condition: service_healthy
     restart: unless-stopped
 
   sqlserver:
@@ -24,6 +25,11 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
+     healthcheck:
+    test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "KinoHub_Sql_Secret_123", "-Q", "SELECT 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
 
 volumes:
   sqlserver-data:
