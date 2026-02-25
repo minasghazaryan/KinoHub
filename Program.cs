@@ -78,8 +78,8 @@ builder.Services.AddHttpClient("Vibix", (sp, client) =>
 builder.Services.AddScoped<VibixService>();
 
 var app = builder.Build();
-app.UseDeveloperExceptionPage();
-//app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.GetLevel = (httpContext, elapsed, ex) =>
@@ -112,6 +112,11 @@ app.MapRazorPages()
 
 try
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<KinoContext>();
+        db.Database.Migrate();
+    }
     app.Run();
 }
 catch(Exception ex)
