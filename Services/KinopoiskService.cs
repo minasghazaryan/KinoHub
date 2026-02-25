@@ -428,7 +428,9 @@ public class KinopoiskService(
     }
 
     /// <summary>
-    /// Syncs all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.). API returns max 400 items (20 pages).
+    /// Syncs all pages from GET /api/v2.2/films (order=RATING, type=ALL, etc.).
+    /// API returns max 400 items (20 pages). We also throttle requests to respect
+    /// Kinopoisk API rate limit (~20 req/sec) by inserting a small delay between pages.
     /// </summary>
     public async Task<(int TotalSynced, int TotalPages)> SyncAllFilmsByFiltersToDatabaseAsync(
         string order = "RATING",
@@ -447,11 +449,27 @@ public class KinopoiskService(
             return (first.Items.Count, 1);
 
         var totalSynced = 0;
+        // 20 req/sec is the documented limit; 120 ms between pages keeps us well below it.
+        const int DelayBetweenPagesMs = 120;
+
         for (var page = 1; page <= totalPages; page++)
         {
             var count = await SyncFilmsByFiltersToDatabaseAsync(order, type, ratingFrom, ratingTo, yearFrom, yearTo, page, genreId, countryId, cancellationToken);
             totalSynced += count;
             logger.LogInformation("Synced catalog page {Page}/{TotalPages}, +{Count} films.", page, totalPages, count);
+
+            if (page < totalPages && DelayBetweenPagesMs > 0)
+            {
+                try
+                {
+                    await Task.Delay(DelayBetweenPagesMs, cancellationToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Respect cancellation; break out if the operation was cancelled.
+                    break;
+                }
+            }
         }
         return (totalSynced, totalPages);
     }

@@ -35,61 +35,67 @@
                     <button type="button" aria-label="Назад" class="carousel-prev absolute left-0 z-10 flex h-14 w-10 shrink-0 items-center justify-center rounded-r-lg bg-slate-900/90 text-white shadow-lg transition hover:bg-amber-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
-                    <div id="carousel-main" class="min-w-0 flex-1 flex gap-4 overflow-x-auto px-2 py-2 scroll-smooth overscroll-x-contain" style="scrollbar-width: none; -ms-overflow-style: none;">
-                        @foreach (var item in Model.CarouselItems.Take(20))
+                    <div id="carousel-main" class="min-w-0 flex-1 flex overflow-x-auto overflow-y-hidden px-2 py-2 overscroll-x-contain" style="scrollbar-width: none; -ms-overflow-style: none;">
+                        @{ var carouselItems = Model.CarouselItems.Take(20).ToList(); }
+                        @for (var copy = 0; copy < 2; copy++)
                         {
-                            @if (item.KinopoiskId.HasValue)
-                            {
-                                <a asp-page="/Details" asp-route-id="@item.KinopoiskId.Value" class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
-                                    <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
-                                        @if (!string.IsNullOrEmpty(item.PosterPath))
-                                        {
-                                            <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
-                                        }
-                                        else
-                                        {
-                                            <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
-                                        }
-                                        @if (item.Rating.HasValue)
-                                        {
-                                            <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
-                                        }
-                                    </div>
-                                    <div class="mt-1.5 flex h-14 flex-col justify-center">
-                                        <p class="line-clamp-2 text-center text-sm font-medium text-slate-200 group-hover:text-amber-200">@CarouselTitle(item)</p>
-                                        @if (!string.IsNullOrEmpty(item.ReleaseYear))
-                                        {
-                                            <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
-                                        }
-                                    </div>
-                                </a>
-                            }
-                            else
-                            {
-                                <div class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
-                                    <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
-                                        @if (!string.IsNullOrEmpty(item.PosterPath))
-                                        {
-                                            <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
-                                        }
-                                        else
-                                        {
-                                            <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
-                                        }
-                                        @if (item.Rating.HasValue)
-                                        {
-                                            <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
-                                        }
-                                    </div>
-                                    <div class="mt-1.5 flex h-14 flex-col justify-center">
-                                        <p class="line-clamp-2 text-center text-sm font-medium text-slate-200">@CarouselTitle(item)</p>
-                                        @if (!string.IsNullOrEmpty(item.ReleaseYear))
-                                        {
-                                            <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
-                                        }
-                                    </div>
-                                </div>
-                            }
+                            <div class="carousel-set flex shrink-0 gap-4">
+                                @foreach (var item in carouselItems)
+                                {
+                                    @if (item.KinopoiskId.HasValue)
+                                    {
+                                        <a asp-page="/Details" asp-route-id="@item.KinopoiskId.Value" class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
+                                            <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
+                                                @if (!string.IsNullOrEmpty(item.PosterPath))
+                                                {
+                                                    <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
+                                                }
+                                                @if (item.Rating.HasValue)
+                                                {
+                                                    <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
+                                                }
+                                            </div>
+                                            <div class="mt-1.5 flex h-14 flex-col justify-center">
+                                                <p class="line-clamp-2 text-center text-sm font-medium text-slate-200 group-hover:text-amber-200">@CarouselTitle(item)</p>
+                                                @if (!string.IsNullOrEmpty(item.ReleaseYear))
+                                                {
+                                                    <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
+                                                }
+                                            </div>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
+                                            <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
+                                                @if (!string.IsNullOrEmpty(item.PosterPath))
+                                                {
+                                                    <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
+                                                }
+                                                @if (item.Rating.HasValue)
+                                                {
+                                                    <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
+                                                }
+                                            </div>
+                                            <div class="mt-1.5 flex h-14 flex-col justify-center">
+                                                <p class="line-clamp-2 text-center text-sm font-medium text-slate-200">@CarouselTitle(item)</p>
+                                                @if (!string.IsNullOrEmpty(item.ReleaseYear))
+                                                {
+                                                    <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
                         }
                     </div>
                     <button type="button" aria-label="Вперёд" class="carousel-next absolute right-0 z-10 flex h-14 w-10 shrink-0 items-center justify-center rounded-l-lg bg-slate-900/90 text-white shadow-lg transition hover:bg-amber-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -103,9 +109,35 @@
                     (function () {
                         var el = document.getElementById('carousel-main');
                         if (!el) return;
-                        var step = 160;
-                        document.querySelector('.carousel-prev')?.addEventListener('click', function () { el.scrollBy({ left: -step, behavior: 'smooth' }); });
-                        document.querySelector('.carousel-next')?.addEventListener('click', function () { el.scrollBy({ left: step, behavior: 'smooth' }); });
+                        function getStep() {
+                            var set = el.querySelector('.carousel-set');
+                            var first = set && set.firstElementChild;
+                            return first ? first.offsetWidth + 16 : 144;
+                        }
+                        function getSetWidth() {
+                            var set = el.querySelector('.carousel-set');
+                            return set ? set.offsetWidth : el.scrollWidth / 2;
+                        }
+                        function loopScroll() {
+                            var setWidth = getSetWidth();
+                            if (setWidth <= 0) return;
+                            if (el.scrollLeft >= setWidth - 1) {
+                                el.scrollLeft = el.scrollLeft - setWidth;
+                            }
+                        }
+                        el.addEventListener('scroll', function () {
+                            requestAnimationFrame(loopScroll);
+                        }, { passive: true });
+                        document.querySelector('.carousel-prev')?.addEventListener('click', function () {
+                            var setWidth = getSetWidth();
+                            if (el.scrollLeft <= 5) el.scrollLeft = setWidth - el.clientWidth;
+                            el.scrollBy({ left: -getStep(), behavior: 'smooth' });
+                        });
+                        document.querySelector('.carousel-next')?.addEventListener('click', function () {
+                            var setWidth = getSetWidth();
+                            if (el.scrollLeft >= setWidth - el.clientWidth - 5) el.scrollLeft = 0;
+                            el.scrollBy({ left: getStep(), behavior: 'smooth' });
+                        });
                     })();
                 </script>
             }
