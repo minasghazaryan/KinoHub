@@ -4,6 +4,7 @@ using KinoHub.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
+using System.Text.Json;
 
 Directory.CreateDirectory("logs");
 
@@ -115,11 +116,13 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<KinoContext>();
-        db.Database.Migrate();
+        await db.Database.MigrateAsync();
+        await GenresCountriesSeeder.SeedAsync(db, app.Environment.ContentRootPath);
     }
+
     app.Run();
 }
-catch(Exception ex)
+catch (Exception ex)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
 }
