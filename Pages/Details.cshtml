@@ -21,7 +21,7 @@
     string FormatMoney(long? amount, string? symbol, string? code) => amount is null or 0 ? null : $"{(symbol ?? "")}{amount:N0} {code ?? ""}".Trim();
 }
 
-<div class="mx-auto max-w-6xl px-4 py-6">
+<div class="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
         <div class="rounded-xl border border-red-800 bg-red-900/20 p-6 text-red-300">
