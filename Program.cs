@@ -78,8 +78,8 @@ builder.Services.AddHttpClient("Vibix", (sp, client) =>
 builder.Services.AddScoped<VibixService>();
 
 var app = builder.Build();
-
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseDeveloperExceptionPage();
+//app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.GetLevel = (httpContext, elapsed, ex) =>
