@@ -1,20 +1,18 @@
-using KinoHub.Web.Data;
 using KinoHub.Web.Models;
 using KinoHub.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace KinoHub.Web.Pages;
 
-/// <summary>Single item for the Подборка carousel (from FeaturedCarousel or Movie).</summary>
-public record CarouselItem(int? KinopoiskId, string PosterPath, string NameRu, string Title, string ReleaseYear, double? Rating);
+public record CarouselItem(int KinopoiskId, string PosterPath, string NameRu, string Title, string ReleaseYear, double? Rating);
+public record CatalogFilterOption(int Id, string Name);
 
-public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService) : PageModel
+public class IndexModel(KinopoiskService kinopoiskService) : PageModel
 {
-    /// <summary>Items for the Подборка carousel. From admin-configured list if any; otherwise top movies from DB.</summary>
+    private const int CatalogUiPageSize = 10;
+
     public IReadOnlyList<CarouselItem> CarouselItems { get; set; } = [];
-    public IList<Movie> Movies { get; set; } = [];
     public string? SearchQuery { get; set; }
     public string? Collection { get; set; }
     public KinopoiskSearchByKeywordResult? SearchResult { get; set; }
@@ -23,16 +21,14 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
     public int SearchPage { get; set; } = 1;
     public int CollectionPage { get; set; } = 1;
     public int FiltersPage { get; set; } = 1;
-
     public int? GenreId { get; set; }
     public int? CountryId { get; set; }
     public int? Year { get; set; }
     public string Order { get; set; } = "RATING";
     public string Type { get; set; } = "ALL";
-    public IList<Genre> Genres { get; set; } = [];
-    public IList<Country> Countries { get; set; } = [];
-    /// <summary>Admin-configured films for the Кинопремьеры section. Only these are shown; no API call.</summary>
-    public IList<FeaturedPremiere> FeaturedPremieres { get; set; } = [];
+    public IReadOnlyList<CatalogFilterOption> Genres { get; set; } = [];
+    public IReadOnlyList<CatalogFilterOption> Countries { get; set; } = [];
+    public IReadOnlyList<KinopoiskPremiereItemDto> Premieres { get; set; } = [];
 
     public async Task OnGetAsync(string? q, string? collection, int? genreId, int? countryId, int? year, string? order, string? type, int page = 1, int filtersPage = 0, CancellationToken cancellationToken = default)
     {
@@ -47,39 +43,9 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
         Type = type ?? "ALL";
         FiltersPage = filtersPage < 1 ? 1 : filtersPage;
 
-        Genres = await dbContext.Genres.AsNoTracking().Where(g => g.Name != null && g.Name != "").OrderBy(g => g.Name).ToListAsync(cancellationToken);
-        Countries = await dbContext.Countries.AsNoTracking().Where(c => c.Name != null && c.Name != "").OrderBy(c => c.Name).ToListAsync(cancellationToken);
-
-        FeaturedPremieres = await dbContext.FeaturedPremieres.AsNoTracking().OrderBy(f => f.DisplayOrder).ToListAsync(cancellationToken);
-
-        // Carousel: admin-configured list (Подборка) or fallback to top movies from DB.
-        var featuredCarousel = await dbContext.FeaturedCarousels.AsNoTracking().OrderBy(f => f.DisplayOrder).ToListAsync(cancellationToken);
-        if (featuredCarousel.Count > 0)
-        {
-            CarouselItems = featuredCarousel.Select(f =>
-            {
-                var poster = f.PosterUrl ?? "";
-                if (!string.IsNullOrEmpty(poster) && !poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    poster = "https://kinopoiskapiunofficial.tech" + (poster.StartsWith("/") ? poster : "/" + poster);
-                return new CarouselItem(f.KinopoiskId, poster, f.NameRu ?? "", f.NameEn ?? "", f.ReleaseYear ?? "", f.Rating);
-            }).ToList();
-        }
-        else
-        {
-            var carouselQuery = dbContext.Movies.AsNoTracking()
-                .OrderByDescending(m => m.Rating ?? 0)
-                .ThenByDescending(m => m.Id);
-            var movies = await carouselQuery.ToListAsync(cancellationToken);
-            Movies = movies;
-            CarouselItems = movies.Select(m => new CarouselItem(
-                m.KinopoiskId,
-                m.PosterPath ?? "",
-                m.NameRu ?? "",
-                m.Title ?? "",
-                m.ReleaseYear ?? "",
-                m.Rating
-            )).ToList();
-        }
+        await LoadFiltersAsync(cancellationToken);
+        await LoadCarouselAsync(cancellationToken);
+        await LoadPremieresAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -91,92 +57,197 @@ public class IndexModel(KinoContext dbContext, KinopoiskService kinopoiskService
             {
                 SearchResult = new KinopoiskSearchByKeywordResult([], 0, 0, q.Trim(), SearchPage);
             }
+
+            return;
         }
-        else if (!string.IsNullOrWhiteSpace(collection))
+
+        if (!string.IsNullOrWhiteSpace(collection))
         {
-            var col = collection.Trim();
-            // Anime and Мультфильмы use filters API by genre (collections API doesn't support these).
-            if (col == "ANIME" || col == "KIDS_ANIMATION_THEME")
-            {
-                GenreId = col == "ANIME" ? 24 : 18; // аниме / мультфильм from Kinopoisk genre IDs
-                FiltersPage = CollectionPage;
-                try
-                {
-                    FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(
-                        order: Order,
-                        type: Type,
-                        page: FiltersPage,
-                        genreId: GenreId,
-                        yearFrom: Year ?? 1000,
-                        yearTo: Year ?? 3000,
-                        cancellationToken: cancellationToken);
-                }
-                catch
-                {
-                    FiltersResult = new FilmsByFiltersResult([], 0, 0, FiltersPage);
-                }
-            }
-            else
-            {
-                try
-                {
-                    CollectionResult = await kinopoiskService.GetCollectionAsync(col, CollectionPage, cancellationToken);
-                }
-                catch
-                {
-                    CollectionResult = new KinopoiskCollectionPageResult([], 0, 0, CollectionPage);
-                }
-            }
+            await LoadCollectionOrSpecialCatalogAsync(collection.Trim(), cancellationToken);
+            return;
         }
-        else
+
+        await LoadCatalogAsync(cancellationToken);
+    }
+
+    public string GetMovieUrlByKinopoiskId(int? kinopoiskId)
+    {
+        if (!kinopoiskId.HasValue || kinopoiskId.Value <= 0)
+            return "#";
+
+        return $"/Details?id={kinopoiskId.Value}";
+    }
+
+    private async Task LoadFiltersAsync(CancellationToken cancellationToken)
+    {
+        try
         {
-            // Main page / catalog: try DB first (synced movies with genres/countries); fall back to API if tables missing
-            try
-            {
-                FiltersResult = await kinopoiskService.GetMoviesFromDbAsync(
-                    genreId: genreId,
-                    countryId: countryId,
-                    year: Year,
-                    order: Order,
-                    page: FiltersPage,
-                    cancellationToken: cancellationToken);
-            }
-            catch
-            {
-                try
-                {
-                    var yearFrom = Year.HasValue ? Year.Value : 1000;
-                    var yearTo = Year.HasValue ? Year.Value : 3000;
-                    FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(
-                        order: Order,
-                        type: Type,
-                        page: FiltersPage,
-                        genreId: genreId,
-                        countryId: countryId,
-                        yearFrom: yearFrom,
-                        yearTo: yearTo,
-                        cancellationToken: cancellationToken);
-                }
-                catch
-                {
-                    FiltersResult = new FilmsByFiltersResult([], 0, 0, FiltersPage);
-                }
-            }
+            var filters = await kinopoiskService.GetFiltersAsync(cancellationToken);
+            Genres = filters.Genres
+                .Where(g => g.Id > 0 && !string.IsNullOrWhiteSpace(g.Genre))
+                .Select(g => new CatalogFilterOption(g.Id, g.Genre!))
+                .OrderBy(g => g.Name)
+                .ToList();
+            Countries = filters.Countries
+                .Where(c => c.Id > 0 && !string.IsNullOrWhiteSpace(c.Country))
+                .Select(c => new CatalogFilterOption(c.Id, c.Country!))
+                .OrderBy(c => c.Name)
+                .ToList();
+        }
+        catch
+        {
+            Genres = [];
+            Countries = [];
         }
     }
 
-    /// <summary>Returns first 5 search suggestions as JSON for the header autocomplete (handler=SearchSuggestions).</summary>
+    private async Task LoadCarouselAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = await kinopoiskService.GetTrendingMoviesAsync(cancellationToken);
+            CarouselItems = items
+                .Take(20)
+                .Select(i => new CarouselItem(
+                    i.KinopoiskId,
+                    i.PosterUrl ?? i.PosterUrlPreview ?? "",
+                    i.NameRu ?? "",
+                    i.NameEn ?? i.NameOriginal ?? "",
+                    i.Year?.ToString() ?? "",
+                    i.RatingKinopoisk > 0 ? i.RatingKinopoisk : null))
+                .ToList();
+        }
+        catch
+        {
+            CarouselItems = [];
+        }
+    }
+
+    private async Task LoadPremieresAsync(CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var month = now.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture).ToUpperInvariant();
+
+        try
+        {
+            var response = await kinopoiskService.GetPremieresAsync(now.Year, month, cancellationToken);
+            Premieres = (response?.Items ?? [])
+                .Where(i => i.KinopoiskId > 0)
+                .Take(5)
+                .ToList();
+        }
+        catch
+        {
+            Premieres = [];
+        }
+    }
+
+    private async Task LoadCollectionOrSpecialCatalogAsync(string collection, CancellationToken cancellationToken)
+    {
+        if (collection == "ANIME" || collection == "KIDS_ANIMATION_THEME")
+        {
+            GenreId = collection == "ANIME"
+                ? FindFilterIdByName(Genres, "аниме")
+                : FindFilterIdByName(Genres, "мульт");
+            var uiPage = CollectionPage;
+            var apiPage = GetCatalogApiPage(uiPage);
+
+            if (!GenreId.HasValue)
+            {
+                FiltersResult = new FilmsByFiltersResult([], 0, 0, uiPage);
+                return;
+            }
+
+            try
+            {
+                FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(
+                    order: Order,
+                    type: Type,
+                    page: apiPage,
+                    genreId: GenreId,
+                    yearFrom: Year ?? 1000,
+                    yearTo: Year ?? 3000,
+                    cancellationToken: cancellationToken);
+                FiltersResult = AdaptFiltersResultForUi(FiltersResult, uiPage);
+            }
+            catch
+            {
+                FiltersResult = new FilmsByFiltersResult([], 0, 0, uiPage);
+            }
+
+            return;
+        }
+
+        try
+        {
+            CollectionResult = await kinopoiskService.GetCollectionAsync(collection, CollectionPage, cancellationToken);
+        }
+        catch
+        {
+            CollectionResult = new KinopoiskCollectionPageResult([], 0, 0, CollectionPage);
+        }
+    }
+
+    private async Task LoadCatalogAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var uiPage = FiltersPage;
+            var apiPage = GetCatalogApiPage(uiPage);
+            var yearFrom = Year ?? 1000;
+            var yearTo = Year ?? 3000;
+            FiltersResult = await kinopoiskService.GetFilmsByFiltersAsync(
+                order: Order,
+                type: Type,
+                page: apiPage,
+                genreId: GenreId,
+                countryId: CountryId,
+                yearFrom: yearFrom,
+                yearTo: yearTo,
+                cancellationToken: cancellationToken);
+            FiltersResult = AdaptFiltersResultForUi(FiltersResult, uiPage);
+        }
+        catch
+        {
+            FiltersResult = new FilmsByFiltersResult([], 0, 0, FiltersPage);
+        }
+    }
+
+    private static int GetCatalogApiPage(int uiPage)
+    {
+        var safePage = uiPage < 1 ? 1 : uiPage;
+        return (safePage + 1) / 2;
+    }
+
+    private static FilmsByFiltersResult AdaptFiltersResultForUi(FilmsByFiltersResult source, int uiPage)
+    {
+        var safePage = uiPage < 1 ? 1 : uiPage;
+        var skip = safePage % 2 == 0 ? CatalogUiPageSize : 0;
+        var items = source.Items.Skip(skip).Take(CatalogUiPageSize).ToList();
+        var totalPages = source.Total <= 0
+            ? 0
+            : (int)Math.Ceiling(source.Total / (double)CatalogUiPageSize);
+
+        return new FilmsByFiltersResult(items, source.Total, totalPages, safePage);
+    }
+
+    private static int? FindFilterIdByName(IEnumerable<CatalogFilterOption> items, string term)
+    {
+        return items.FirstOrDefault(i => i.Name.Contains(term, StringComparison.OrdinalIgnoreCase))?.Id;
+    }
+
     public async Task<IActionResult> OnGetSearchSuggestionsAsync(string? q, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
             return new JsonResult(Array.Empty<object>());
+
         try
         {
             var result = await kinopoiskService.SearchByKeywordAsync(q.Trim(), 1, cancellationToken);
             var suggestions = result.Films.Take(5).Select(f =>
             {
                 var title = !string.IsNullOrWhiteSpace(f.NameRu) ? f.NameRu : (f.NameEn ?? "");
-                return new { id = f.FilmId, title, year = f.Year };
+                return new { id = f.FilmId, title, year = f.Year, url = $"/Details?id={f.FilmId}" };
             }).ToList();
             return new JsonResult(suggestions);
         }

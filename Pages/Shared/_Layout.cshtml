@@ -1,17 +1,3 @@
-@inject IConfiguration Configuration
-@{
-    var vibixEnableUnionAds = Configuration.GetValue<bool>("Vibix:EnableUnionAds");
-    var vibixPublisherId = Configuration["Vibix:PublisherId"]?.Trim();
-    var vibixUnionAdTypes = Configuration["Vibix:UnionAdTypes"]?.Trim();
-    var vibixFlyrollPositionRaw = Configuration["Vibix:FlyrollPosition"]?.Trim();
-
-    var vibixUnionEnabled = vibixEnableUnionAds && !string.IsNullOrEmpty(vibixPublisherId);
-    var vibixUnionAdTypesSafe = string.IsNullOrEmpty(vibixUnionAdTypes) ? "flyroll" : vibixUnionAdTypes;
-    var validFlyrollPositions = new[] { "1", "2", "3", "4" };
-    var vibixFlyrollPositionSafe = !string.IsNullOrEmpty(vibixFlyrollPositionRaw) && validFlyrollPositions.Contains(vibixFlyrollPositionRaw)
-        ? vibixFlyrollPositionRaw
-        : null;
-}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -29,6 +15,16 @@
         select::-webkit-scrollbar-track, [class*="overflow-auto"]::-webkit-scrollbar-track, [class*="overflow-y-auto"]::-webkit-scrollbar-track, .overflow-x-auto::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
         select::-webkit-scrollbar-thumb, [class*="overflow-auto"]::-webkit-scrollbar-thumb, [class*="overflow-y-auto"]::-webkit-scrollbar-thumb, .overflow-x-auto::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 4px; }
         select::-webkit-scrollbar-thumb:hover, [class*="overflow-auto"]::-webkit-scrollbar-thumb:hover, [class*="overflow-y-auto"]::-webkit-scrollbar-thumb:hover, .overflow-x-auto::-webkit-scrollbar-thumb:hover { background: #d97706; }
+        #header-search-shell { width: 100%; max-width: 100%; }
+        @@media (min-width: 768px) {
+            #header-topbar { position: relative; }
+            #header-search-shell { width: 450px; max-width: 450px; }
+            #header-search-shell {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
     </style>
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
@@ -45,20 +41,12 @@
     <!-- /Yandex.Metrika counter -->
 </head>
 <body class="bg-slate-950 text-slate-100">
-    @if (vibixUnionEnabled)
-    {
-        <ins id="vibix_union"
-             data-publisher_id="@vibixPublisherId"
-             data-add_types="@vibixUnionAdTypesSafe"
-             @if (vibixFlyrollPositionSafe != null) { <text> data-position="@vibixFlyrollPositionSafe"</text> }></ins>
-        <script type="text/javascript" src="https://v-js-menu.run/public/lib.en.min.js"></script>
-    }
     <header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
-        <div class="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-0 sm:px-4">
+        <div id="header-topbar" class="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-0 sm:px-4">
             <div class="min-w-0 shrink-0 sm:flex-1">
                 <a class="text-lg font-bold tracking-tight text-amber-400 sm:text-xl" asp-page="/Index">KINOVIBE</a>
             </div>
-            <div class="w-full min-w-0 shrink-0 sm:w-auto sm:max-w-[28rem]">
+            <div id="header-search-shell" class="w-full min-w-0 shrink-0">
                 <form id="header-search-form" method="get" asp-page="/Index" class="flex w-full gap-2" role="search">
                     <div class="relative min-w-0 flex-1">
                         <input id="header-search-input" type="search" name="q" value="@ViewData["SearchQuery"]" placeholder="Поиск..." class="w-full rounded border border-slate-700 bg-slate-800 px-2.5 py-1 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:outline-none" autocomplete="off" />
@@ -91,7 +79,7 @@
                     if (!items || items.length === 0) { dropdown.classList.add('hidden'); return; }
                     items.forEach(function (item) {
                         var a = document.createElement('a');
-                        a.href = '/Details?id=' + encodeURIComponent(item.id);
+                        a.href = item.url || ('/Details?id=' + encodeURIComponent(item.id));
                         a.className = 'block border-b border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 first:rounded-t-lg last:border-b-0 last:rounded-b-lg';
                         a.textContent = (item.title || '') + (item.year ? ' (' + item.year + ')' : '');
                         a.setAttribute('role', 'option');
@@ -127,15 +115,8 @@
         </nav>
     </header>
     <main role="main" class="min-h-screen">
-        @if (vibixUnionEnabled && vibixUnionAdTypesSafe.Contains("banners", StringComparison.OrdinalIgnoreCase))
-        {
-            <div class="mx-auto max-w-7xl px-4 py-2 flex justify-center">
-                <ins data-pa-b="300x250"></ins>
-            </div>
-        }
         @RenderBody()
     </main>
-    <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
     <footer class="border-t border-slate-800 bg-slate-950 text-slate-500">
         <div class="mx-auto max-w-7xl px-4 py-6 text-center text-xs">KinoVibe &copy; @DateTime.UtcNow.Year</div>
     </footer>

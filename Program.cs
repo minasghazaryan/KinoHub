@@ -1,10 +1,7 @@
-using KinoHub.Web.Data;
 using KinoHub.Web.Middleware;
 using KinoHub.Web.Services;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
-using System.Text.Json;
 
 Directory.CreateDirectory("logs");
 
@@ -45,19 +42,6 @@ builder.Services.AddRazorPages(o =>
         }
     });
 });
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<IApiCacheService, ApiCacheService>();
-
-builder.Services.AddDbContext<KinoContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions =>
-        {
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 10,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null);
-        }));
 
 builder.Services.AddHttpClient("Kinopoisk", (sp, client) =>
 {
@@ -109,17 +93,8 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
-// Seed genres and countries from JSON if tables are empty
-
 try
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<KinoContext>();
-        await db.Database.MigrateAsync();
-        await GenresCountriesSeeder.SeedAsync(db, app.Environment.ContentRootPath);
-    }
-
     app.Run();
 }
 catch (Exception ex)

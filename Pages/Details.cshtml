@@ -7,18 +7,16 @@
 
     string PosterUrl(string? path) => string.IsNullOrEmpty(path) ? "" : (path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path : "https://image.tmdb.org/t/p/w500" + path);
     string DisplayTitle() => Model.FilmDetails?.NameRu ?? Model.FilmDetails?.NameEn ?? "Без названия";
-    string CountriesStr() => Model.FilmDetails?.Countries != null && Model.FilmDetails.Countries.Count > 0
+    string? CountriesStr() => Model.FilmDetails?.Countries != null && Model.FilmDetails.Countries.Count > 0
         ? string.Join(", ", Model.FilmDetails.Countries.Select(c => c.Country).Where(c => !string.IsNullOrEmpty(c)))
         : null;
-    string GenresStr() => Model.FilmDetails?.Genres != null && Model.FilmDetails.Genres.Count > 0
+    string? GenresStr() => Model.FilmDetails?.Genres != null && Model.FilmDetails.Genres.Count > 0
         ? string.Join(", ", Model.FilmDetails.Genres.Select(g => g.Genre).Where(g => !string.IsNullOrEmpty(g)))
         : null;
-    string DurationStr() => Model.FilmDetails?.FilmLength is > 0 ? $"{Model.FilmDetails.FilmLength} мин." : null;
-    string FilmTypeLabel() => Model.FilmDetails?.Type switch { "FILM" => "Фильм", "TV_SERIES" => "Сериал", "MINI_SERIES" => "Мини-сериал", "TV_SHOW" => "ТВ-шоу", "VIDEO" => "Видео", _ => null };
-    string YearRangeStr() => Model.FilmDetails?.StartYear is > 0 && Model.FilmDetails?.EndYear is > 0
+    string? DurationStr() => Model.FilmDetails?.FilmLength is > 0 ? $"{Model.FilmDetails.FilmLength} мин." : null;
+    string? YearRangeStr() => Model.FilmDetails?.StartYear is > 0 && Model.FilmDetails?.EndYear is > 0
         ? (Model.FilmDetails.StartYear == Model.FilmDetails.EndYear ? $"{Model.FilmDetails.StartYear}" : $"{Model.FilmDetails.StartYear} – {Model.FilmDetails.EndYear}")
         : (Model.FilmDetails?.Year > 0 ? $"{Model.FilmDetails.Year}" : null);
-    string FormatMoney(long? amount, string? symbol, string? code) => amount is null or 0 ? null : $"{(symbol ?? "")}{amount:N0} {code ?? ""}".Trim();
 }
 
 <div class="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
@@ -38,18 +36,18 @@
     else
     {
         @* Title: main + English (like reference) *@
-        <h1 class="mb-1 text-3xl font-bold text-slate-100 md:text-4xl">@DisplayTitle()</h1>
+        <h1 class="mb-1 text-2xl font-bold text-slate-100 md:text-3xl">@DisplayTitle()</h1>
         @if (!string.IsNullOrEmpty(Model.FilmDetails!.NameEn) && Model.FilmDetails.NameEn != Model.FilmDetails.NameRu)
         {
-            <p class="mb-6 text-lg text-slate-400">@Model.FilmDetails.NameEn</p>
+            <p class="mb-4 text-base text-slate-400">@Model.FilmDetails.NameEn</p>
         }
         else
         {
-            <div class="mb-6"></div>
+            <div class="mb-4"></div>
         }
 
         @* Poster + metadata row (reference layout) *@
-        <div class="flex flex-col gap-6 lg:flex-row">
+        <div class="flex flex-col gap-5 lg:flex-row">
             @* Left: poster + Смотреть трейлер *@
             <div class="shrink-0 lg:w-72">
                 <div class="relative aspect-[2/3] overflow-hidden rounded-xl bg-slate-800 shadow-xl">
@@ -74,7 +72,7 @@
                 }
                 @if (firstVideo != null)
                 {
-                    <a href="@firstVideo.Url" target="_blank" rel="noopener noreferrer" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-slate-200 transition hover:bg-slate-700 hover:text-white">
+                    <a href="@firstVideo.Url" target="_blank" rel="noopener noreferrer" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-800/80 py-2.5 text-sm text-slate-200 transition hover:bg-slate-700 hover:text-white">
                         <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.84A1.5 1.5 0 014 4v12a1.5 1.5 0 012.3 1.16l9-6a1.5 1.5 0 000-2.32l-9-6z"/></svg>
                         <span>Смотреть трейлер</span>
                     </a>
@@ -82,13 +80,13 @@
             </div>
 
             @* Right: metadata in reference order *@
-            <div class="min-w-0 flex-1">
-                <dl class="space-y-3 text-sm">
+            <div class="min-w-0 flex-1" style="padding-left:12px">
+                <dl class="space-y-2 text-[13px] leading-5">
                     @* Рейтинги: IMDb first, then Кинопоиск (with votes) *@
                     @if (Model.FilmDetails.RatingImdb > 0 || Model.FilmDetails.RatingKinopoisk > 0)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Рейтинги:</dt>
+                            <dt class="mb-0.5 text-slate-500">Рейтинги:</dt>
                             <dd class="text-slate-200">
                                 @if (Model.FilmDetails.RatingImdb > 0)
                                 {
@@ -106,7 +104,7 @@
                     @if (!string.IsNullOrWhiteSpace(Model.FilmDetails.Slogan))
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Слоган:</dt>
+                            <dt class="mb-0.5 text-slate-500">Слоган:</dt>
                             <dd class="italic text-slate-300">«@Model.FilmDetails.Slogan»</dd>
                         </div>
                     }
@@ -114,7 +112,7 @@
                     @if (Model.FilmDetails.Year > 0 || YearRangeStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Дата выхода:</dt>
+                            <dt class="mb-0.5 text-slate-500">Дата выхода:</dt>
                             <dd class="text-slate-200">@(YearRangeStr() ?? Model.FilmDetails.Year.ToString())@(YearRangeStr() == null && Model.FilmDetails.Year > 0 ? " года" : "")</dd>
                         </div>
                     }
@@ -122,7 +120,7 @@
                     @if (CountriesStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Страна:</dt>
+                            <dt class="mb-0.5 text-slate-500">Страна:</dt>
                             <dd class="text-slate-200">@CountriesStr()</dd>
                         </div>
                     }
@@ -133,7 +131,7 @@
                     @if (directors.Count > 0)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Режиссер:</dt>
+                            <dt class="mb-0.5 text-slate-500">Режиссер:</dt>
                             <dd class="text-slate-200">@string.Join(", ", directors.Select(d => d.NameRu ?? d.NameEn ?? "").Where(n => !string.IsNullOrEmpty(n)))</dd>
                         </div>
                     }
@@ -141,31 +139,29 @@
                     @if (GenresStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Жанр:</dt>
+                            <dt class="mb-0.5 text-slate-500">Жанр:</dt>
                             <dd class="text-slate-200">@GenresStr()</dd>
                         </div>
                     }
-                    @* В качестве *@
                     @if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.Quality))
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">В качестве:</dt>
+                            <dt class="mb-0.5 text-slate-500">Качество:</dt>
                             <dd class="text-slate-200">@Model.VibixVideo.Quality</dd>
                         </div>
                     }
-                    @* В переводе (voiceovers) *@
-                    @if (Model.VoiceoversList != null && Model.VoiceoversList.Count > 0)
+                    @* @if (Model.VoiceoversList.Count > 0)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">В переводе:</dt>
-                            <dd class="text-slate-200">@string.Join(", ", Model.VoiceoversList.Select(v => v.Name).Where(n => !string.IsNullOrEmpty(n)))</dd>
+                            <dt class="mb-1 text-slate-500">Озвучка:</dt>
+                            <dd class="text-slate-200">@string.Join(", ", Model.VoiceoversList.Select(v => v.Name).Where(n => !string.IsNullOrWhiteSpace(n)))</dd>
                         </div>
-                    }
+                    } *@
                     @* Время *@
                     @if (DurationStr() != null)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Время:</dt>
+                            <dt class="mb-0.5 text-slate-500">Время:</dt>
                             <dd class="text-slate-200">@DurationStr()</dd>
                         </div>
                     }
@@ -173,7 +169,7 @@
                     @if (!string.IsNullOrEmpty(Model.FilmDetails.RatingAgeLimits))
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">Возраст:</dt>
+                            <dt class="mb-0.5 text-slate-500">Возраст:</dt>
                             <dd class="text-slate-200">@Model.FilmDetails.RatingAgeLimits</dd>
                         </div>
                     }
@@ -184,7 +180,7 @@
                     @if (actors.Count > 0)
                     {
                         <div>
-                            <dt class="mb-1 text-slate-500">В ролях актеры:</dt>
+                            <dt class="mb-0.5 text-slate-500">В ролях актеры:</dt>
                             <dd class="text-slate-200">@string.Join(", ", actors.Select(a => a.NameRu ?? a.NameEn ?? "").Where(n => !string.IsNullOrEmpty(n)))@(Model.Staff?.Count(s => string.Equals(s.ProfessionKey, "ACTOR", StringComparison.OrdinalIgnoreCase)) > 15 ? " и другие" : "")</dd>
                         </div>
                     }
@@ -202,47 +198,47 @@
             </div>
         }
 
-        @* Video player: Vibix SDK (rendex-sdk) by Kinopoisk ID — script is in _Layout *@
-        @if (!string.IsNullOrEmpty(Model.VibixPublisherId) && Model.FilmDetails.KinopoiskId > 0)
+        @if (!string.IsNullOrWhiteSpace(Model.VibixPublisherId) && Model.FilmDetails.KinopoiskId > 0)
         {
             var voiceoversForPlayer = Model.VoiceoversList ?? [];
             <div class="mt-8 border-t border-slate-800 pt-8">
                 <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — смотреть онлайн</h2>
-                @if (voiceoversForPlayer.Count > 0)
+@*                 @if (voiceoversForPlayer.Count > 0)
                 {
                     <div class="mb-3 flex flex-wrap items-center gap-2">
-                        <span class="text-sm text-slate-400">Перевод:</span>
+                        <span class="text-sm text-slate-400">Озвучка:</span>
                         <select id="vibix-voiceover-select" class="rounded border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none">
                             @{
                                 var firstVo = voiceoversForPlayer.Count > 0 ? voiceoversForPlayer[0] : null;
                             }
                             @if (firstVo != null)
                             {
-                                <option value="@firstVo.Id" selected>@(firstVo.Name ?? "Перевод 1")</option>
+                                <option value="@firstVo.Id" selected>@(firstVo.Name ?? "Озвучка 1")</option>
                             }
                             @for (var i = 1; i < voiceoversForPlayer.Count; i++)
                             {
                                 var vo = voiceoversForPlayer[i];
-                                <option value="@vo.Id">@(vo.Name ?? "Перевод " + (i + 1))</option>
+                                <option value="@vo.Id">@(vo.Name ?? "Озвучка " + (i + 1))</option>
                             }
                         </select>
                     </div>
-                }
+                } *@
+
                 <div class="vibix-player-wrap relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-                    <ins id="vibix-player-ins" class="block h-full w-full min-h-[360px]" 
+                    <ins id="vibix-player-ins" class="block h-full w-full min-h-[360px]"
                          data-publisher-id="@Model.VibixPublisherId"
                          data-type="kp"
                          data-id="@Model.FilmDetails.KinopoiskId"
                          data-poster="true"
                          data-design="1"
-                         @(voiceoversForPlayer.Count > 0 ? $"data-voiceover-id=\"{voiceoversForPlayer[0].Id}\"" : "")
-                         >
-                     </ins>
+                         @(voiceoversForPlayer.Count > 0 ? $"data-voiceover-id=\"{voiceoversForPlayer[0].Id}\"" : "")>
+                    </ins>
                 </div>
                 <style>
                     .vibix-player-wrap ins,
                     .vibix-player-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 100%; }
                 </style>
+                <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
                 @if (voiceoversForPlayer.Count > 0)
                 {
                     <script>
@@ -253,11 +249,51 @@
                             sel.addEventListener('change', function() {
                                 var id = this.value;
                                 ins.setAttribute('data-voiceover-id', id);
-                                if (window.RendexSDK && typeof window.RendexSDK.reload === 'function') window.RendexSDK.reload();
+                                if (window.RendexSDK && typeof window.RendexSDK.reload === 'function') {
+                                    window.RendexSDK.reload();
+                                }
                             });
                         })();
                     </script>
                 }
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl) || !string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
+        {
+            <div class="mt-8 border-t border-slate-800 pt-8">
+                <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — смотреть онлайн</h2>
+               @*  @if (Model.VoiceoversList.Count > 0)
+                {
+                    <p class="mb-3 text-sm text-slate-400">Озвучка: @string.Join(", ", Model.VoiceoversList.Select(v => v.Name).Where(n => !string.IsNullOrWhiteSpace(n)))</p>
+                } *@
+
+                @if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl))
+                {
+                    <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                        <iframe
+                            src="@Model.VibixVideo.IframeUrl"
+                            class="absolute inset-0 h-full w-full"
+                            allowfullscreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            title="Плеер"></iframe>
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
+                {
+                    <div class="prose prose-invert max-w-none overflow-hidden rounded-xl bg-slate-900/60 p-4">
+                        @Html.Raw(Model.VibixVideo.EmbedCode)
+                    </div>
+                }
+            </div>
+        }
+        else if (Model.FilmDetails.KinopoiskId > 0)
+        {
+            <div class="mt-8 border-t border-slate-800 pt-8">
+                <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — видео и трейлеры</h2>
+                <p class="mb-4 text-sm text-slate-400">Плеер Vibix для этого фильма недоступен. Можно открыть трейлеры из Kinopoisk API.</p>
+                <a asp-page="/Watch" asp-route-id="@Model.FilmDetails.KinopoiskId" class="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500">
+                    Открыть видео
+                </a>
             </div>
         }
 

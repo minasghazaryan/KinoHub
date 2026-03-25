@@ -6,7 +6,6 @@
     ViewData["Collection"] = Model.Collection;
     string PosterUrl(string path) => string.IsNullOrEmpty(path) ? "" : (path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path : "https://image.tmdb.org/t/p/w500" + path);
     string CarouselPosterUrl(string path) => string.IsNullOrEmpty(path) ? "" : (path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path : "https://image.tmdb.org/t/p/w500" + path);
-    string DisplayTitle(KinoHub.Web.Models.Movie m) => !string.IsNullOrWhiteSpace(m.NameRu) ? m.NameRu : m.Title;
     string CarouselTitle(KinoHub.Web.Pages.CarouselItem i) => !string.IsNullOrWhiteSpace(i.NameRu) ? i.NameRu : i.Title;
     string SearchFilmTitle(KinoHub.Web.Models.KinopoiskSearchFilmDto f) => !string.IsNullOrWhiteSpace(f.NameRu) ? f.NameRu : (f.NameEn ?? "");
     string CollectionItemTitle(KinoHub.Web.Models.KinopoiskFilmItemDto i) => !string.IsNullOrWhiteSpace(i.NameRu) ? i.NameRu : (i.NameEn ?? i.NameOriginal ?? "");
@@ -14,7 +13,7 @@
     string CountriesStr(KinoHub.Web.Models.KinopoiskFilmItemDto i) => i.Countries != null && i.Countries.Count > 0 ? string.Join(", ", i.Countries.Select(c => c.Country).Where(c => !string.IsNullOrEmpty(c))) : "";
     string GenresStr(KinoHub.Web.Models.KinopoiskFilmItemDto i) => i.Genres != null && i.Genres.Count > 0 ? string.Join(" / ", i.Genres.Select(g => g.Genre).Where(g => !string.IsNullOrEmpty(g))) : "";
     string PremierePosterUrl(string? url) => string.IsNullOrEmpty(url) ? "" : (url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : "https://kinopoiskapiunofficial.tech" + url);
-    string FeaturedTitle(KinoHub.Web.Models.FeaturedPremiere i) => !string.IsNullOrWhiteSpace(i.NameRu) ? i.NameRu : (i.NameEn ?? "");
+    string FeaturedTitle(KinoHub.Web.Models.KinopoiskPremiereItemDto i) => !string.IsNullOrWhiteSpace(i.NameRu) ? i.NameRu : (i.NameEn ?? "");
     var _ru = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
     string Capitalize(string? s) => string.IsNullOrEmpty(s) ? "" : char.ToUpper(s[0], _ru) + s.Substring(1);
 }
@@ -42,58 +41,29 @@
                             <div class="carousel-set flex shrink-0 gap-4">
                                 @foreach (var item in carouselItems)
                                 {
-                                    @if (item.KinopoiskId.HasValue)
-                                    {
-                                        <a asp-page="/Details" asp-route-id="@item.KinopoiskId.Value" class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
-                                            <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
-                                                @if (!string.IsNullOrEmpty(item.PosterPath))
-                                                {
-                                                    <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
-                                                }
-                                                @if (item.Rating.HasValue)
-                                                {
-                                                    <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
-                                                }
-                                            </div>
-                                            <div class="mt-1.5 flex h-14 flex-col justify-center">
-                                                <p class="line-clamp-2 text-center text-sm font-medium text-slate-200 group-hover:text-amber-200">@CarouselTitle(item)</p>
-                                                @if (!string.IsNullOrEmpty(item.ReleaseYear))
-                                                {
-                                                    <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
-                                                }
-                                            </div>
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <div class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
-                                            <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
-                                                @if (!string.IsNullOrEmpty(item.PosterPath))
-                                                {
-                                                    <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
-                                                }
-                                                @if (item.Rating.HasValue)
-                                                {
-                                                    <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
-                                                }
-                                            </div>
-                                            <div class="mt-1.5 flex h-14 flex-col justify-center">
-                                                <p class="line-clamp-2 text-center text-sm font-medium text-slate-200">@CarouselTitle(item)</p>
-                                                @if (!string.IsNullOrEmpty(item.ReleaseYear))
-                                                {
-                                                    <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
-                                                }
-                                            </div>
+                                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="group flex w-28 shrink-0 flex-col sm:w-32 transition-transform hover:scale-[1.02]">
+                                        <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-slate-800 shadow-lg">
+                                            @if (!string.IsNullOrEmpty(item.PosterPath))
+                                            {
+                                                <img src="@CarouselPosterUrl(item.PosterPath)" alt="@CarouselTitle(item)" class="h-full w-full object-cover transition group-hover:brightness-110" loading="lazy" />
+                                            }
+                                            else
+                                            {
+                                                <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет постера</div>
+                                            }
+                                            @if (item.Rating.HasValue)
+                                            {
+                                                <span class="absolute right-1.5 top-1.5 rounded bg-slate-900/80 px-1.5 py-0.5 text-xs font-medium text-amber-400">★ @item.Rating.Value.ToString("F1")</span>
+                                            }
                                         </div>
-                                    }
+                                        <div class="mt-1.5 flex h-14 flex-col justify-center">
+                                            <p class="line-clamp-2 text-center text-sm font-medium text-slate-200 group-hover:text-amber-200">@CarouselTitle(item)</p>
+                                            @if (!string.IsNullOrEmpty(item.ReleaseYear))
+                                            {
+                                                <p class="text-center text-xs text-slate-500">@item.ReleaseYear</p>
+                                            }
+                                        </div>
+                                    </a>
                                 }
                             </div>
                         }
@@ -144,7 +114,7 @@
         </section>
 
     @* Always: sidebar + main content div (data loads here) *@
-    <section class="flex flex-col gap-6 border-t border-slate-800 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row">
+    <section class="flex flex-col gap-6 border-t border-slate-800 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row" style="padding-top:15px">
         <aside class="w-full shrink-0 lg:w-[250px]">
             <h3 class="mb-3 text-sm font-bold text-white sm:mb-4">Навигация</h3>
             <div class="flex flex-col gap-4 sm:gap-6">
@@ -305,7 +275,7 @@
                     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                         @foreach (var film in Model.SearchResult.Films)
                         {
-                            <a asp-page="/Details" asp-route-id="@film.FilmId" class="group flex flex-col">
+                            <a href="@Model.GetMovieUrlByKinopoiskId(film.FilmId)" class="group flex flex-col">
                                 <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 shadow-lg">
                                     @if (!string.IsNullOrEmpty(film.PosterUrl) || !string.IsNullOrEmpty(film.PosterUrlPreview))
                                     {
@@ -356,7 +326,7 @@
                         {
                             <li class="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                                 <div class="w-28 shrink-0 sm:w-36">
-                                    <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="block">
+                                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="block">
                                         <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-slate-800">
                                             @if (!string.IsNullOrEmpty(item.PosterUrl) || !string.IsNullOrEmpty(item.PosterUrlPreview))
                                             {
@@ -374,7 +344,7 @@
                                     </a>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="hover:text-amber-300">
+                                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="hover:text-amber-300">
                                         <h3 class="text-base font-semibold text-slate-100">@CollectionItemTitle(item) @(YearStr(item) != "" ? "(" + YearStr(item) + ")" : "")</h3>
                                     </a>
                                     <p class="mt-0.5 flex items-center gap-2 text-sm text-amber-400">
@@ -397,7 +367,7 @@
                                         }
                                     </dl>
                                     <div class="mt-3">
-                                        <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">Смотреть онлайн</a>
+                                        <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">Смотреть онлайн</a>
                                     </div>
                                 </div>
                             </li>
@@ -433,7 +403,7 @@
                         {
                             <li class="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
                                 <div class="w-28 shrink-0 sm:w-36">
-                                    <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="block">
+                                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="block">
                                         <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-slate-800">
                                             @if (!string.IsNullOrEmpty(item.PosterUrl) || !string.IsNullOrEmpty(item.PosterUrlPreview))
                                             {
@@ -451,7 +421,7 @@
                                     </a>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="hover:text-amber-300">
+                                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="hover:text-amber-300">
                                         <h3 class="text-base font-semibold text-slate-100">@CollectionItemTitle(item) @(YearStr(item) != "" ? "(" + YearStr(item) + ")" : "")</h3>
                                     </a>
                                     <p class="mt-0.5 flex items-center gap-2 text-sm text-amber-400">
@@ -474,7 +444,7 @@
                                         }
                                     </dl>
                                     <div class="mt-3">
-                                        <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">Смотреть онлайн</a>
+                                        <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-amber-500">Смотреть онлайн</a>
                                     </div>
                                 </div>
                             </li>
@@ -504,16 +474,14 @@
     </section>
 
     @* Кинопремьеры — после каталога, на всю ширину *@
-    @if (Model.FeaturedPremieres.Count > 0)
+    @if (Model.Premieres.Count > 0)
     {
-        var premieresFirst = Model.FeaturedPremieres.Take(8).ToList();
-        var premieresRest = Model.FeaturedPremieres.Skip(8).ToList();
         <section class="border-t border-slate-800 px-3 py-6 sm:px-4">
             <h2 class="mb-4 text-lg font-semibold text-slate-200">Кинопремьеры</h2>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                @foreach (var item in premieresFirst)
+                @foreach (var item in Model.Premieres)
                 {
-                    <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="group flex flex-col rounded-lg border border-slate-700/80 bg-slate-800/60 overflow-hidden transition hover:border-amber-500/50 hover:bg-slate-800">
+                    <a href="@Model.GetMovieUrlByKinopoiskId(item.KinopoiskId)" class="group flex flex-col rounded-lg border border-slate-700/80 bg-slate-800/60 overflow-hidden transition hover:border-amber-500/50 hover:bg-slate-800">
                         <div class="aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-slate-700">
                             @if (!string.IsNullOrEmpty(item.PosterUrl))
                             {
@@ -537,53 +505,7 @@
                         </div>
                     </a>
                 }
-                @if (premieresRest.Count > 0)
-                {
-                    <div id="premieres-more" class="hidden col-span-2 grid grid-cols-2 gap-3 sm:col-span-3 sm:grid-cols-3 md:col-span-4 md:grid-cols-4 lg:col-span-5 lg:grid-cols-5">
-                        @foreach (var item in premieresRest)
-                        {
-                            <a asp-page="/Details" asp-route-id="@item.KinopoiskId" class="group flex flex-col rounded-lg border border-slate-700/80 bg-slate-800/60 overflow-hidden transition hover:border-amber-500/50 hover:bg-slate-800">
-                                <div class="aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-slate-700">
-                                    @if (!string.IsNullOrEmpty(item.PosterUrl))
-                                    {
-                                        <img src="@PremierePosterUrl(item.PosterUrl)" alt="@FeaturedTitle(item)" class="h-full w-full object-cover" loading="lazy" />
-                                    }
-                                    else
-                                    {
-                                        <div class="flex h-full w-full items-center justify-center text-slate-500 text-xs">Нет</div>
-                                    }
-                                </div>
-                                <div class="min-w-0 p-2">
-                                    <p class="line-clamp-2 text-xs font-medium text-slate-200 group-hover:text-amber-200">@FeaturedTitle(item)</p>
-                                    @if (!string.IsNullOrEmpty(item.PremiereRu))
-                                    {
-                                        <p class="text-[10px] text-slate-500">@item.PremiereRu</p>
-                                    }
-                                    else if (item.Year.HasValue)
-                                    {
-                                        <p class="text-[10px] text-slate-500">@item.Year</p>
-                                    }
-                                </div>
-                            </a>
-                        }
-                    </div>
-                    <div class="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 mt-2">
-                        <button type="button" id="premieres-show-more" class="w-full rounded border border-slate-600 bg-slate-800 py-2 text-sm font-medium text-slate-300 transition hover:border-amber-500/50 hover:text-amber-400">Показать ещё (@premieresRest.Count)</button>
-                    </div>
-                }
             </div>
-            <script>
-                (function () {
-                    var more = document.getElementById('premieres-more');
-                    var btn = document.getElementById('premieres-show-more');
-                    if (more && btn) {
-                        btn.addEventListener('click', function () {
-                            more.classList.remove('hidden');
-                            btn.closest('div').classList.add('hidden');
-                        });
-                    }
-                })();
-            </script>
         </section>
     }
 </div>

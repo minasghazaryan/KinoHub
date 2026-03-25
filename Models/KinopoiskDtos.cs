@@ -203,6 +203,27 @@ public class KinopoiskGenreDto
     public string? Genre { get; set; }
 }
 
+public class KinopoiskFiltersItemDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("genre")]
+    public string? Genre { get; set; }
+
+    [JsonPropertyName("country")]
+    public string? Country { get; set; }
+}
+
+public class KinopoiskFiltersResponseDto
+{
+    [JsonPropertyName("genres")]
+    public List<KinopoiskFiltersItemDto> Genres { get; set; } = [];
+
+    [JsonPropertyName("countries")]
+    public List<KinopoiskFiltersItemDto> Countries { get; set; } = [];
+}
+
 /// <summary>
 /// Wrapper for collections endpoint response (items array, optional pagination).
 /// </summary>

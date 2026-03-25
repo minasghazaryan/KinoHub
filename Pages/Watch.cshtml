@@ -1,9 +1,9 @@
 @page
 @model KinoHub.Web.Pages.WatchModel
 @{
-    ViewData["Title"] = Model.Video != null
-        ? (Model.Video.NameRus ?? Model.Video.NameEng ?? Model.Video.Name ?? "Смотреть")
-        : "Смотреть онлайн";
+    ViewData["Title"] = Model.FilmDetails != null
+        ? $"Видео: {Model.FilmDetails.NameRu ?? Model.FilmDetails.NameEn ?? "Фильм"}"
+        : "Видео";
 }
 
 <div class="mx-auto max-w-6xl px-4 py-6">
@@ -14,31 +14,38 @@
             <a asp-page="/Index" class="mt-4 inline-block text-amber-400 hover:underline">← На главную</a>
         </div>
     }
-    else if (Model.Video != null)
+    else if (Model.SelectedVideo != null)
     {
         <div class="mb-4">
-            <a asp-page="/Index" class="text-sm text-slate-400 hover:text-amber-400">← На главную</a>
+            <a asp-page="/Details" asp-route-id="@Model.FilmDetails?.KinopoiskId" class="text-sm text-slate-400 hover:text-amber-400">← К фильму</a>
         </div>
 
         <h1 class="mb-4 text-xl font-semibold text-slate-100">
-            @(Model.Video.NameRus ?? Model.Video.NameEng ?? Model.Video.Name ?? "Смотреть онлайн")
+            @(Model.FilmDetails?.NameRu ?? Model.FilmDetails?.NameEn ?? "Видео")
         </h1>
 
-        @if (!string.IsNullOrEmpty(Model.Video.IframeUrl))
+        <p class="mb-4 text-sm text-slate-400">
+            @(Model.SelectedVideo.Name ?? "Видео из Kinopoisk API")
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.SelectedEmbedUrl))
         {
             <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
                 <iframe
-                    src="@Model.Video.IframeUrl"
+                    src="@Model.SelectedEmbedUrl"
                     class="absolute inset-0 h-full w-full"
                     allowfullscreen
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title="Плеер"></iframe>
             </div>
         }
-        else if (!string.IsNullOrEmpty(Model.Video.EmbedCode))
+        else if (!string.IsNullOrEmpty(Model.SelectedVideo.Url))
         {
-            <div class="prose prose-invert max-w-none">
-                @Html.Raw(Model.Video.EmbedCode)
+            <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-slate-300">
+                <p class="mb-4">Для этого видео нет встроенного плеера, но можно открыть оригинальную страницу ролика.</p>
+                <a href="@Model.SelectedVideo.Url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-amber-500">
+                    Открыть видео
+                </a>
             </div>
         }
         else
@@ -48,11 +55,20 @@
             </div>
         }
 
-        @if (Model.Video.Voiceovers.Count > 0)
+        @if (Model.Videos.Count > 1)
         {
-            <p class="mt-4 text-sm text-slate-500">
-                Перевод: @string.Join(", ", Model.Video.Voiceovers.Select(v => v.Name).Where(n => !string.IsNullOrEmpty(n)))
-            </p>
+            <div class="mt-6">
+                <h2 class="mb-3 text-sm font-semibold text-slate-200">Другие видео</h2>
+                <div class="flex flex-wrap gap-2">
+                    @for (var i = 0; i < Model.Videos.Count; i++)
+                    {
+                        var video = Model.Videos[i];
+                        <a asp-page="/Watch" asp-route-id="@Model.FilmDetails?.KinopoiskId" asp-route-video="@i" class="rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:border-amber-500/50 hover:text-amber-300">
+                            @(string.IsNullOrWhiteSpace(video.Name) ? $"Видео {i + 1}" : video.Name)
+                        </a>
+                    }
+                </div>
+            </div>
         }
     }
 </div>
