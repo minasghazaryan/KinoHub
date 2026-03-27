@@ -4,8 +4,12 @@
     var vibixPublisherId = Configuration["Vibix:PublisherId"]?.Trim();
     var vibixUnionAdTypes = Configuration["Vibix:UnionAdTypes"]?.Trim();
     var vibixFlyrollPositionRaw = Configuration["Vibix:FlyrollPosition"]?.Trim();
+    var requestPath = Context?.Request?.Path.Value ?? string.Empty;
+    var disableUnionAdsOnPage =
+        requestPath.StartsWith("/Details", StringComparison.OrdinalIgnoreCase) ||
+        requestPath.StartsWith("/Watch", StringComparison.OrdinalIgnoreCase);
 
-    var vibixUnionEnabled = !string.IsNullOrEmpty(vibixPublisherId) && vibixEnableUnionAds;
+    var vibixUnionEnabled = !string.IsNullOrEmpty(vibixPublisherId) && vibixEnableUnionAds && !disableUnionAdsOnPage;
     var vibixUnionAdTypesSafe = string.IsNullOrEmpty(vibixUnionAdTypes) ? "sticker" : vibixUnionAdTypes;
     var validFlyrollPositions = new[] { "1", "2", "3", "4" };
     var vibixFlyrollPositionSafe = !string.IsNullOrEmpty(vibixFlyrollPositionRaw) && validFlyrollPositions.Contains(vibixFlyrollPositionRaw)
