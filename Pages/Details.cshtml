@@ -198,32 +198,38 @@
             </div>
         }
 
-        @if (!string.IsNullOrWhiteSpace(Model.VibixPublisherId) && Model.FilmDetails.KinopoiskId > 0)
+        @if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl) || !string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
+        {
+            <div class="mt-8 border-t border-slate-800 pt-8">
+                <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — смотреть онлайн</h2>
+                @if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl))
+                {
+                    <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                        <iframe
+                            src="@Model.VibixVideo.IframeUrl"
+                            class="absolute inset-0 h-full w-full"
+                            loading="lazy"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                            webkitallowfullscreen
+                            mozallowfullscreen
+                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                            title="Плеер"></iframe>
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
+                {
+                    <div class="prose prose-invert max-w-none overflow-hidden rounded-xl bg-slate-900/60 p-4">
+                        @Html.Raw(Model.VibixVideo.EmbedCode)
+                    </div>
+                }
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Model.VibixPublisherId) && Model.FilmDetails.KinopoiskId > 0)
         {
             var voiceoversForPlayer = Model.VoiceoversList ?? [];
             <div class="mt-8 border-t border-slate-800 pt-8">
                 <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — смотреть онлайн</h2>
-@*                 @if (voiceoversForPlayer.Count > 0)
-                {
-                    <div class="mb-3 flex flex-wrap items-center gap-2">
-                        <span class="text-sm text-slate-400">Озвучка:</span>
-                        <select id="vibix-voiceover-select" class="rounded border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none">
-                            @{
-                                var firstVo = voiceoversForPlayer.Count > 0 ? voiceoversForPlayer[0] : null;
-                            }
-                            @if (firstVo != null)
-                            {
-                                <option value="@firstVo.Id" selected>@(firstVo.Name ?? "Озвучка 1")</option>
-                            }
-                            @for (var i = 1; i < voiceoversForPlayer.Count; i++)
-                            {
-                                var vo = voiceoversForPlayer[i];
-                                <option value="@vo.Id">@(vo.Name ?? "Озвучка " + (i + 1))</option>
-                            }
-                        </select>
-                    </div>
-                } *@
-
                 <div class="vibix-player-wrap relative aspect-video w-full overflow-hidden rounded-xl bg-black">
                     <ins id="vibix-player-ins" class="block h-full w-full min-h-[360px]"
                          data-publisher-id="@Model.VibixPublisherId"
@@ -255,34 +261,6 @@
                             });
                         })();
                     </script>
-                }
-            </div>
-        }
-        else if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl) || !string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
-        {
-            <div class="mt-8 border-t border-slate-800 pt-8">
-                <h2 class="mb-2 text-xl font-semibold text-slate-100">@DisplayTitle() — смотреть онлайн</h2>
-               @*  @if (Model.VoiceoversList.Count > 0)
-                {
-                    <p class="mb-3 text-sm text-slate-400">Озвучка: @string.Join(", ", Model.VoiceoversList.Select(v => v.Name).Where(n => !string.IsNullOrWhiteSpace(n)))</p>
-                } *@
-
-                @if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.IframeUrl))
-                {
-                    <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-                        <iframe
-                            src="@Model.VibixVideo.IframeUrl"
-                            class="absolute inset-0 h-full w-full"
-                            allowfullscreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            title="Плеер"></iframe>
-                    </div>
-                }
-                else if (!string.IsNullOrWhiteSpace(Model.VibixVideo?.EmbedCode))
-                {
-                    <div class="prose prose-invert max-w-none overflow-hidden rounded-xl bg-slate-900/60 p-4">
-                        @Html.Raw(Model.VibixVideo.EmbedCode)
-                    </div>
                 }
             </div>
         }
